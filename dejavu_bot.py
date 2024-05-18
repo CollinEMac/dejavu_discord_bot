@@ -50,7 +50,7 @@ async def on_message(message):
         # Bot cannot reply to itself
         return
 
-    channel = client.get_channel(os.environ.get('DISCORD_TOKEN'))
+    channel = client.get_channel(os.environ.get('CHANNEL_ID'))
     created_at = channel.created_at
     rand_datetime = get_rand_datetime(created_at, datetime.now(tzinfo=timezone.utc))
 
