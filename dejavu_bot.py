@@ -135,7 +135,7 @@ async def who_said(who_said_content, channel):
 async def on_message(message):
     # this if statement only returns true if who_said has run before this
     if message.mentions.id == who_said_id:
-    channel.send('Correct.')
-    who_said_waiting = False
+        channel.send('Correct.')
+        who_said_waiting = False
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
