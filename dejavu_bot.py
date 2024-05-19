@@ -41,6 +41,7 @@ VERY_DARK_COLORS = [
 
 @bot.command()
 async def dejavu(ctx, arg):
+    print('pls')
     """
     On `/dejavu` grab a random message and post it
     """
