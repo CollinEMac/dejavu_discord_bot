@@ -136,6 +136,7 @@ async def who_said(who_said_id, who_said_content, channel):
             time.sleep(1)
 
 WHO_SAID_THREAD = Thread(target = who_said)
+WHO_SAID_THREAD.run()
 
 @bot.event
 async def on_message(message):
