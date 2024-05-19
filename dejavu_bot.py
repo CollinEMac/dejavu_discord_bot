@@ -140,7 +140,7 @@ WHO_SAID_THREAD = Thread(target = who_said)
 @bot.event
 async def on_message(message):
     print('on_message called')
-    while WHO_SAID_THREAD.isAlive():
+    while WHO_SAID_THREAD.is_alive():
         print('ydsfgdf')
         who_said_response_id = message.mentions.id
         print(who_said_response_id)
