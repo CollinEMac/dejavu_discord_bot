@@ -39,6 +39,9 @@ VERY_DARK_COLORS = [
 
 who_said_id_for_on_message = ''
 
+import ipdb
+ipdb.set_trace()
+
 @bot.command()
 async def dejavu(ctx, arg):
     """
