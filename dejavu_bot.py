@@ -37,6 +37,8 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
+who_said_id_for_on_message = ''
+
 @bot.command()
 async def dejavu(ctx, arg):
     """
@@ -124,7 +126,7 @@ async def create_and_send_image(text, channel):
 async def who_said(who_said_id, who_said_content, channel):
     # Ask who said who_said_content and set the who_said_id so the if statement in on_message is true
     await channel.send('Who said: ' + who_said_content)
-    global who_said_id_for_on_message = who_said_id
+    who_said_id_for_on_message = who_said_id
     
 
 @bot.event
