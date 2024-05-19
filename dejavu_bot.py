@@ -35,6 +35,8 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
+who_said_id_for_on_message = ''
+
 @bot.command()
 async def dejavu(ctx, arg):
     """
@@ -83,6 +85,11 @@ async def create_and_send_response(rand_message, channel, arg):
         await channel.send(text)
     elif arg == 'image':
         await create_and_send_image(text, channel)
+    elif arg == 'whosaid':
+        # if the arg is whosaid pass the id and content of the msg to the who_said game
+        who_said_id = rand_message.author.id
+        who_said_content = rand_message.content
+        await who_said(who_said_id, who_said_content, channel)
 
 async def create_and_send_image(text, channel):
     """
@@ -113,5 +120,34 @@ async def create_and_send_image(text, channel):
 
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
+
+async def who_said(who_said_id, who_said_content, channel):
+    """
+    Ask who said who_said_content and set the global var
+    who_said_id_for_on_message so the if statement in
+    on_message is true
+    """
+    await channel.send('Who said: ' + who_said_content)
+    global who_said_id_for_on_message
+    who_said_id_for_on_message = who_said_id
+
+@bot.event
+async def on_message(message):
+    """
+    check if the id in the response matches the
+    id if the whosaid game is being played
+    """
+    if message.author == bot.user:
+        return
+
+    # Process commands first
+    await bot.process_commands(message)
+
+    # this if statement only returns true if who_said has run before this
+    if len(message.mentions) > 0:
+        global who_said_id_for_on_message
+        if message.mentions[0].id == who_said_id_for_on_message:
+            await message.channel.send('Correct.')
+            who_said_id_for_on_message = ''
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
