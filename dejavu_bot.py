@@ -133,10 +133,11 @@ async def who_said(who_said_id, who_said_content, channel):
 async def on_message(message):
     print('on_message called')
     # this if statement only returns true if who_said has run before this
-    if message.mentions[0].id == who_said_id_for_on_message:
-        print('message id is equal to whosaid response id')
-        channel.send('Correct.')
-        who_said_id_for_on_message = ''
+    if message.mentions[0] in locals():
+        if message.mentions[0].id == who_said_id_for_on_message:
+            print('message id is equal to whosaid response id')
+            channel.send('Correct.')
+            who_said_id_for_on_message = ''
     bot.process_commands(message)
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
