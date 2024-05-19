@@ -137,7 +137,7 @@ async def who_said(who_said_id, who_said_content, channel):
 
 @bot.event
 async def on_message(message):
-    if who_said_waiting == True
+    if who_said_waiting == True:
         who_said_response_id = message.mentions.id
         print(who_said_response_id)
 
