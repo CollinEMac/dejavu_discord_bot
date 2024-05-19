@@ -18,6 +18,11 @@ from discord.ext import commands
 from dotenv import load_dotenv
 load_dotenv()
 
+import threading
+from threading import Thread
+
+import time
+
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -34,6 +39,8 @@ VERY_DARK_COLORS = [
     'navy',
     'purple'
 ]
+
+WHO_SAID_THREAD = Thread(target = who_said)
 
 @bot.command()
 async def dejavu(ctx, arg):
@@ -83,6 +90,10 @@ async def create_and_send_response(rand_message, channel, arg):
         await channel.send(text)
     elif arg == 'image':
         await create_and_send_image(text, channel)
+    elif arg == 'whosaid':
+        who_said_id = rand_message.author.id
+        who_said_content = rand_message.content
+        await who_said(who_said_id, who_said_content)
 
 async def create_and_send_image(text, channel):
     """
@@ -113,5 +124,18 @@ async def create_and_send_image(text, channel):
 
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
+
+async def who_said(who_said_id, who_said_content):
+    await channel.send('Who said: ' + who_said_content)
+    while True:
+        if who_said_response_id == who_said_id:
+            channel.send('Correct.')
+        else:
+            time.sleep(1)
+
+@client.event
+async def on_message(message):
+    while WHO_SAID_THREAD.isAlive():
+        who_said_response_id = message.mentions.id
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
