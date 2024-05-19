@@ -6,7 +6,6 @@ invoke with `/dejavu`
 """
 
 import os
-import time
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from random import choice, randrange
@@ -123,14 +122,21 @@ async def create_and_send_image(text, channel):
     await channel.send(file=file)
 
 async def who_said(who_said_id, who_said_content, channel):
-    # Ask who said who_said_content and set the
-    # who_said_id so the if statement in on_message is true
+    """
+    Ask who said who_said_content and set the global var
+    who_said_id_for_on_message so the if statement in
+    on_message is true
+    """
     await channel.send('Who said: ' + who_said_content)
     global who_said_id_for_on_message
     who_said_id_for_on_message = who_said_id
 
 @bot.event
 async def on_message(message):
+    """
+    check if the id in the response matches the
+    id if the whosaid game is being played
+    """
     if message.author == bot.user:
         return
 
