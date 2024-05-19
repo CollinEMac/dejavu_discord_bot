@@ -40,7 +40,6 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
-WHO_SAID_THREAD = Thread(target = who_said)
 
 @bot.command()
 async def dejavu(ctx, arg):
@@ -132,6 +131,8 @@ async def who_said(who_said_id, who_said_content):
             channel.send('Correct.')
         else:
             time.sleep(1)
+
+WHO_SAID_THREAD = Thread(target = who_said)
 
 @client.event
 async def on_message(message):
