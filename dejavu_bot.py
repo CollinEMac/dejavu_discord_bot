@@ -26,8 +26,6 @@ intents.message_content = True
 # client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='/', intents=intents)
 
-who_said_waiting = False
-
 VERY_DARK_COLORS = [
     'black',
     'darkblue',
@@ -39,7 +37,7 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
-who_said_id = ''
+who_said_id_for_on_message = ''
 
 @bot.command()
 async def dejavu(ctx, arg):
@@ -93,7 +91,7 @@ async def create_and_send_response(rand_message, channel, arg):
         # if the arg is whosaid pass the id and content of the msg to the who_said game
         who_said_id = rand_message.author.id
         who_said_content = rand_message.content
-        await who_said(who_said_content, channel)
+        await who_said(who_said_id, who_said_content, channel)
 
 async def create_and_send_image(text, channel):
     """
@@ -125,17 +123,17 @@ async def create_and_send_image(text, channel):
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
 
-async def who_said(who_said_content, channel):
+async def who_said(who_said_id, who_said_content, channel):
     # Ask who said who_said_content and set the who_said_id so the if statement in on_message is true
     await channel.send('Who said: ' + who_said_content)
-    who_said_id
+    who_said_id_for_on_message = who_said_id
     
 
 @bot.listen
 async def on_message(message):
     # this if statement only returns true if who_said has run before this
-    if message.mentions.id == who_said_id:
+    if message.mentions.id == who_said_id_for_on_message:
         channel.send('Correct.')
-        who_said_waiting = False
+        who_said_id_for_on_message = ''
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
