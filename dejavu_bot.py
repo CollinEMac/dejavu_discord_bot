@@ -68,6 +68,7 @@ def get_rand_datetime(start, end):
     return start + timedelta(seconds=random_second)
 
 async def create_and_send_response(rand_message, channel, arg):
+    print('create_and_send_response called')
     """
     Creates an image with the message author, content, and creation datetime
     with a random colored background
