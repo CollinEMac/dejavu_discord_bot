@@ -97,7 +97,7 @@ async def create_and_send_image(text, channel):
     /dejavu image
     """
     font = ImageFont.truetype(
-        "/usr/share/fonts/truetype/Courier.ttf",
+        "Pillow/Tests/fonts/FreeMono.ttf",
         size=14
     )
 
