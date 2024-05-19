@@ -36,6 +36,8 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
+who_said_id_for_on_message = ''
+
 @bot.command()
 async def dejavu(ctx, arg):
     """
