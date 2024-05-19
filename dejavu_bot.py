@@ -39,9 +39,10 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
+who_said_id = ''
+
 @bot.command()
 async def dejavu(ctx, arg):
-    print('pls')
     """
     On `/dejavu` grab a random message and post it
     """
@@ -69,7 +70,6 @@ def get_rand_datetime(start, end):
     return start + timedelta(seconds=random_second)
 
 async def create_and_send_response(rand_message, channel, arg):
-    print('create_and_send_response called')
     """
     Creates an image with the message author, content, and creation datetime
     with a random colored background
@@ -90,10 +90,10 @@ async def create_and_send_response(rand_message, channel, arg):
     elif arg == 'image':
         await create_and_send_image(text, channel)
     elif arg == 'whosaid':
+        # if the arg is whosaid pass the id and content of the msg to the who_said game
         who_said_id = rand_message.author.id
-        print(rand_message.author.id)
         who_said_content = rand_message.content
-        await who_said(who_said_id, who_said_content, channel)
+        await who_said(who_said_content, channel)
 
 async def create_and_send_image(text, channel):
     """
@@ -125,24 +125,17 @@ async def create_and_send_image(text, channel):
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
 
-async def who_said(who_said_id, who_said_content, channel):
-    print(who_said_id)
+async def who_said(who_said_content, channel):
+    # Ask who said who_said_content and set the who_said_id so the if statement in on_message is true
     await channel.send('Who said: ' + who_said_content)
-    who_said_response_id = ''
-    who_said_waiting = True
-    print(who_said_waiting)
-    while True:
-        if who_said_response_id == who_said_id:
-            channel.send('Correct.')
-            who_said_waiting = False
-        else:
-            time.sleep(1)
+    who_said_id
+    
 
 @bot.listen
 async def on_message(message):
-    print("on_message called")
-    if who_said_waiting == True:
-        who_said_response_id = message.mentions.id
-        print(who_said_response_id)
+    # this if statement only returns true if who_said has run before this
+    if message.mentions.id == who_said_id:
+    channel.send('Correct.')
+    who_said_waiting = False
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
