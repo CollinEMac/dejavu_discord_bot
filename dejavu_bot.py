@@ -128,6 +128,7 @@ async def create_and_send_image(text, channel):
     await channel.send(file=file)
 
 async def who_said(who_said_id, who_said_content, channel):
+    print(who_said_id)
     await channel.send('Who said: ' + who_said_content)
     who_said_response_id = ''
     while True:
@@ -142,5 +143,6 @@ WHO_SAID_THREAD = Thread(target = who_said)
 async def on_message(message):
     while WHO_SAID_THREAD.isAlive():
         who_said_response_id = message.mentions.id
+        print(who_said_response_id)
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
