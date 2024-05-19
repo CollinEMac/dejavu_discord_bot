@@ -129,6 +129,7 @@ async def create_and_send_image(text, channel):
 
 async def who_said(who_said_id, who_said_content, channel):
     await channel.send('Who said: ' + who_said_content)
+    who_said_response_id = ''
     while True:
         if who_said_response_id == who_said_id:
             channel.send('Correct.')
