@@ -89,11 +89,9 @@ async def create_and_send_image(text, channel):
     Handle the case where an image is requested
     /dejavu image
     """
-    FONT_SIZE = 14
-
     font = ImageFont.truetype(
         "/usr/share/fonts/truetype/Courier.ttf",
-        size=FONT_SIZE
+        size=14
     )
 
     # Convert dict_items to a list
