@@ -14,6 +14,7 @@ from PIL import Image, ImageColor, ImageDraw, ImageFont
 
 import discord
 from discord.ext import commands
+from discord import Client
 
 from dotenv import load_dotenv
 load_dotenv()
