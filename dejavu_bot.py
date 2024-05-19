@@ -6,6 +6,7 @@ invoke with `/dejavu`
 """
 
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from random import choice, randrange
@@ -17,8 +18,6 @@ from discord.ext import commands
 
 from dotenv import load_dotenv
 load_dotenv()
-
-import time
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -36,8 +35,6 @@ VERY_DARK_COLORS = [
     'navy',
     'purple'
 ]
-
-who_said_id_for_on_message = ''
 
 @bot.command()
 async def dejavu(ctx, arg):
@@ -124,11 +121,10 @@ async def create_and_send_image(text, channel):
     await channel.send(file=file)
 
 async def who_said(who_said_id, who_said_content, channel):
-    # Ask who said who_said_content and set the who_said_id so the if statement in on_message is true
+    # Ask who said who_said_content and set the
+    # who_said_id so the if statement in on_message is true
     await channel.send('Who said: ' + who_said_content)
-    global who_said_id_for_on_message
-    who_said_id_for_on_message = who_said_id
-    
+    global who_said_id_for_on_message = who_said_id
 
 @bot.event
 async def on_message(message):
@@ -138,12 +134,10 @@ async def on_message(message):
     # Process commands first
     await bot.process_commands(message)
 
-    print('on_message called')
     # this if statement only returns true if who_said has run before this
     if len(message.mentions) > 0:
         global who_said_id_for_on_message
         if message.mentions[0].id == who_said_id_for_on_message:
-            print('message id is equal to whosaid response id')
             await message.channel.send('Correct.')
             who_said_id_for_on_message = ''
 
