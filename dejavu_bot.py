@@ -137,7 +137,7 @@ async def who_said(who_said_id, who_said_content):
 
 WHO_SAID_THREAD = Thread(target = who_said)
 
-@Client.event
+@client.event
 async def on_message(message):
     while WHO_SAID_THREAD.isAlive():
         who_said_response_id = message.mentions.id
