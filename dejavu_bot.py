@@ -77,12 +77,7 @@ async def create_and_send_response(rand_message, channel, arg):
         rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
     )
 
-    # if the arg is "text" just return the text as a message
-    if arg == 'text':
-        # handle the case where text is requested
-        # /dejavu text
-        await channel.send(text)
-    elif arg == 'image':
+    if arg == 'image':
         await create_and_send_image(text, channel)
     elif arg == 'whosaid':
         # if the arg is whosaid, store the message details in the bot's who_said_context
@@ -92,6 +87,10 @@ async def create_and_send_response(rand_message, channel, arg):
             'channel': channel
         }
         await who_said(rand_message.content, channel)
+    else:
+        # /dejavu text
+        # Just return the random message as text
+        await channel.send(text)
 
 async def create_and_send_image(text, channel):
     """
