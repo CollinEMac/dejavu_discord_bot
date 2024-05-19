@@ -28,6 +28,8 @@ import time
 intents = discord.Intents.default()
 intents.message_content = True
 
+client = discord.Client(intents=discord.Intents.default())
+
 # client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='/', intents=intents)
 
