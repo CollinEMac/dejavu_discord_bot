@@ -21,7 +21,6 @@ load_dotenv()
 intents = discord.Intents.default()
 intents.message_content = True
 
-# client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 VERY_DARK_COLORS = [
@@ -35,7 +34,7 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
-who_said_id_for_on_message = ''
+bot.who_said_context = None
 
 @bot.command()
 async def dejavu(ctx, arg):
@@ -86,10 +85,13 @@ async def create_and_send_response(rand_message, channel, arg):
     elif arg == 'image':
         await create_and_send_image(text, channel)
     elif arg == 'whosaid':
-        # if the arg is whosaid pass the id and content of the msg to the who_said game
-        who_said_id = rand_message.author.id
-        who_said_content = rand_message.content
-        await who_said(who_said_id, who_said_content, channel)
+        # if the arg is whosaid, store the message details in the bot's who_said_context
+        bot.who_said_context = {
+            'author_id': rand_message.author.id,
+            'content': rand_message.content,
+            'channel': channel
+        }
+        await who_said(rand_message.content, channel)
 
 async def create_and_send_image(text, channel):
     """
@@ -121,15 +123,12 @@ async def create_and_send_image(text, channel):
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
 
-async def who_said(who_said_id, who_said_content, channel):
+async def who_said(who_said_content, channel):
     """
-    Ask who said who_said_content and set the global var
-    who_said_id_for_on_message so the if statement in
-    on_message is true
+    Ask who said who_said_content and store the context
+    in the bot's who_said_context
     """
     await channel.send('Who said: ' + who_said_content)
-    global who_said_id_for_on_message
-    who_said_id_for_on_message = who_said_id
 
 @bot.event
 async def on_message(message):
@@ -144,10 +143,9 @@ async def on_message(message):
     await bot.process_commands(message)
 
     # this if statement only returns true if who_said has run before this
-    if len(message.mentions) > 0:
-        global who_said_id_for_on_message
-        if message.mentions[0].id == who_said_id_for_on_message:
-            await message.channel.send('Correct.')
-            who_said_id_for_on_message = ''
+    if len(message.mentions) > 0 and bot.who_said_context is not None:
+        if message.mentions[0].id == bot.who_said_context['author_id']:
+            await bot.who_said_context['channel'].send('Correct.')
+            bot.who_said_context = None
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
