@@ -138,11 +138,11 @@ async def who_said(who_said_id, who_said_content, channel):
         else:
             time.sleep(1)
 
-#@bot.event
-#async def on_message(message):
-#    print("on_message called")
-#    if who_said_waiting == True:
-#        who_said_response_id = message.mentions.id
-#        print(who_said_response_id)
+@bot.listen
+async def on_message(message):
+    print("on_message called")
+    if who_said_waiting == True:
+        who_said_response_id = message.mentions.id
+        print(who_said_response_id)
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
