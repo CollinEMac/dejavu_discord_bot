@@ -128,6 +128,7 @@ async def who_said(who_said_id, who_said_content, channel):
     await channel.send('Who said: ' + who_said_content)
     who_said_response_id = ''
     who_said_waiting = True
+    print(who_said_waiting)
     while True:
         if who_said_response_id == who_said_id:
             channel.send('Correct.')
