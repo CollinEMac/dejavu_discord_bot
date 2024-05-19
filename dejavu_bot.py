@@ -94,6 +94,7 @@ async def create_and_send_response(rand_message, channel, arg):
         await create_and_send_image(text, channel)
     elif arg == 'whosaid':
         who_said_id = rand_message.author.id
+        print(rand_message.author.id)
         who_said_content = rand_message.content
         await who_said(who_said_id, who_said_content, channel)
 
