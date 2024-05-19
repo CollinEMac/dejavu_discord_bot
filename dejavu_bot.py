@@ -73,7 +73,7 @@ async def create_and_send_response(rand_message, channel, arg):
         " said: \n" +
         rand_message.content +
         "\n at " +
-        str(rand_message.created_at)
+        rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
     )
 
     # if the arg is "text" just return the text as a message
@@ -82,27 +82,30 @@ async def create_and_send_response(rand_message, channel, arg):
         # /dejavu text
         await channel.send(text)
     elif arg == 'image':
-        create_and_send_image(100, text, channel)
+        await create_and_send_image(200, text, channel)
 
 async def create_and_send_image(width_height, text, channel):
     """
     Handle the case where an image is requested
     /dejavu image
     """
+    FONT_SIZE = 14
+
     font = ImageFont.truetype(
-        "/usr/share/fonts/truetype/croscore/CourierPrime.ttf",
-        size=20
+        "/usr/share/fonts/truetype/Courier.ttf",
+        size=FONT_SIZE
     )
 
-    # the second element is the color name
-    rand_color = choice(ImageColor.colormap.items())[0]
+    # Convert dict_items to a list
+    color_items = list(ImageColor.colormap.items())
+    rand_color = choice(color_items)[0]
     img = Image.new('RGB', (width_height, width_height), color=rand_color)
 
     img_draw = ImageDraw.Draw(img)
 
-    text_width, text_height = img_draw.textsize(text, font=font)
-    x_text = (width_height - text_width) / 2
-    y_text = (width_height - text_height) / 2
+    # text_width, text_height = img_draw.textsize(text, font=font)
+    x_text = (width_height - FONT_SIZE) / 2
+    y_text = (width_height - FONT_SIZE) / 2
 
     if rand_color not in VERY_DARK_COLORS:
         img_draw.text((x_text, y_text), text, font=font, fill=(0, 0, 0))
