@@ -6,7 +6,7 @@ invoke with `/dejavu`
 """
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from random import choice, randrange
 
@@ -21,7 +21,7 @@ load_dotenv()
 intents = discord.Intents.default()
 intents.message_content = True
 
-client = discord.Client(intents=intents)
+# client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 VERY_DARK_COLORS = [
@@ -35,13 +35,6 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
-@client.event
-async def on_ready():
-    """
-    Print something on ready for testing
-    """
-    print(f'We have logged in as {client.user}')
-
 @bot.command()
 async def dejavu(ctx, arg):
     """
@@ -49,12 +42,14 @@ async def dejavu(ctx, arg):
     """
     channel = ctx.channel
     created_at = channel.created_at
-    rand_datetime = get_rand_datetime(created_at, datetime.now(tzinfo=timezone.utc))
+    end = datetime.utcnow().replace(tzinfo=timezone.utc)
+    rand_datetime = get_rand_datetime(created_at, end)
 
-    rand_message = channel.history(limit=1, around=rand_datetime)[0]
-
-    if rand_message.content != '':
-        create_and_send_response(rand_message, channel, arg)
+    # limit=1 so we only get one message (we could change this later to add more?)
+    async for rand_message in channel.history(limit=1, around=rand_datetime):
+        if rand_message.content != '':
+            await create_and_send_response(rand_message, channel, arg)
+            break
 
 def get_rand_datetime(start, end):
     """
@@ -66,16 +61,15 @@ def get_rand_datetime(start, end):
     delta = end - start
     int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
     random_second = randrange(int_delta)
-    return start + datetime.timedelta(seconds=random_second)
+    return start + timedelta(seconds=random_second)
 
-def create_and_send_response(rand_message, channel, arg):
+async def create_and_send_response(rand_message, channel, arg):
     """
     Creates an image with the message author, content, and creation datetime
     with a random colored background
     """
-    font = ImageFont.truetype("FreeMono.ttf", size=20)
     text = (
-        rand_message.author +
+        rand_message.author.name +
         " said: \n" +
         rand_message.content +
         "\n at " +
@@ -86,15 +80,19 @@ def create_and_send_response(rand_message, channel, arg):
     if arg == 'text':
         # handle the case where text is requested
         # /dejavu text
-        channel.send(text)
+        await channel.send(text)
     elif arg == 'image':
-        create_and_send_image(100, text, font, channel)
+        create_and_send_image(100, text, channel)
 
-async def create_and_send_image(width_height, text, font, channel):
+async def create_and_send_image(width_height, text, channel):
     """
     Handle the case where an image is requested
     /dejavu image
     """
+    font = ImageFont.truetype(
+        "/usr/share/fonts/truetype/croscore/CourierPrime.ttf",
+        size=20
+    )
 
     # the second element is the color name
     rand_color = choice(ImageColor.colormap.items())[0]
@@ -119,4 +117,4 @@ async def create_and_send_image(width_height, text, font, channel):
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
 
-client.run(os.environ.get('DISCORD_TOKEN'))
+bot.run(os.environ.get('DISCORD_TOKEN'))
