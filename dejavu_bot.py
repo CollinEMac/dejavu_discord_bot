@@ -72,7 +72,7 @@ async def create_and_send_response(rand_message, channel, arg):
         rand_message.author.name +
         " said: \n" +
         rand_message.content +
-        "\n at " +
+        "\nat " +
         rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
     )
 
@@ -82,9 +82,9 @@ async def create_and_send_response(rand_message, channel, arg):
         # /dejavu text
         await channel.send(text)
     elif arg == 'image':
-        await create_and_send_image(200, text, channel)
+        await create_and_send_image(text, channel)
 
-async def create_and_send_image(width_height, text, channel):
+async def create_and_send_image(text, channel):
     """
     Handle the case where an image is requested
     /dejavu image
@@ -99,18 +99,14 @@ async def create_and_send_image(width_height, text, channel):
     # Convert dict_items to a list
     color_items = list(ImageColor.colormap.items())
     rand_color = choice(color_items)[0]
-    img = Image.new('RGB', (width_height, width_height), color=rand_color)
+    img = Image.new('RGB', (1000, 100), color=rand_color)
 
     img_draw = ImageDraw.Draw(img)
 
-    # text_width, text_height = img_draw.textsize(text, font=font)
-    x_text = (width_height - FONT_SIZE) / 2
-    y_text = (width_height - FONT_SIZE) / 2
-
     if rand_color not in VERY_DARK_COLORS:
-        img_draw.text((x_text, y_text), text, font=font, fill=(0, 0, 0))
+        img_draw.text((0, 25), text, font=font, fill=(0, 0, 0))
     else:
-        img_draw.text((x_text, y_text), text, font=font, fill=(255, 255, 255))
+        img_draw.text((0, 25), text, font=font, fill=(255, 255, 255))
 
     # Save the image to a BytesIO buffer
     buffer = BytesIO()
