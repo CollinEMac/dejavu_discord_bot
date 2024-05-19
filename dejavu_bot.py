@@ -14,7 +14,7 @@ from PIL import Image, ImageColor, ImageDraw, ImageFont
 
 import discord
 from discord.ext import commands
-from discord import client
+from discord import Client
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -135,7 +135,7 @@ async def who_said(who_said_id, who_said_content):
 
 WHO_SAID_THREAD = Thread(target = who_said)
 
-@client.event
+@Client.event
 async def on_message(message):
     while WHO_SAID_THREAD.isAlive():
         who_said_response_id = message.mentions.id
