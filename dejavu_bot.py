@@ -12,9 +12,9 @@ from random import choice, randrange
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
+from discord import Client
 import discord
 from discord.ext import commands
-from discord import Client
 
 from dotenv import load_dotenv
 load_dotenv()
