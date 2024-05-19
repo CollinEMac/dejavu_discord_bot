@@ -18,9 +18,6 @@ from discord.ext import commands
 from dotenv import load_dotenv
 load_dotenv()
 
-import threading
-from threading import Thread
-
 import time
 
 intents = discord.Intents.default()
@@ -28,6 +25,8 @@ intents.message_content = True
 
 # client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix='/', intents=intents)
+
+who_said_waiting = False
 
 VERY_DARK_COLORS = [
     'black',
@@ -39,7 +38,6 @@ VERY_DARK_COLORS = [
     'navy',
     'purple'
 ]
-
 
 @bot.command()
 async def dejavu(ctx, arg):
@@ -129,20 +127,17 @@ async def who_said(who_said_id, who_said_content, channel):
     print(who_said_id)
     await channel.send('Who said: ' + who_said_content)
     who_said_response_id = ''
+    who_said_waiting = True
     while True:
         if who_said_response_id == who_said_id:
             channel.send('Correct.')
+            who_said_waiting = False
         else:
             time.sleep(1)
 
-WHO_SAID_THREAD = Thread(target = who_said)
-WHO_SAID_THREAD.run()
-
 @bot.event
 async def on_message(message):
-    print('on_message called')
-    while WHO_SAID_THREAD.is_alive():
-        print('ydsfgdf')
+    if who_said_waiting == True
         who_said_response_id = message.mentions.id
         print(who_said_response_id)
 
