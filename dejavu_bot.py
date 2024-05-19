@@ -97,7 +97,7 @@ async def create_and_send_image(text, channel):
     /dejavu image
     """
     font = ImageFont.truetype(
-        "Pillow/Tests/fonts/FreeMono.ttf",
+        "./fonts/Courier.ttf", # debian path
         size=14
     )
 
