@@ -127,7 +127,7 @@ async def create_and_send_image(text, channel):
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
 
-async def who_said(who_said_id, who_said_content):
+async def who_said(who_said_id, who_said_content, channel):
     await channel.send('Who said: ' + who_said_content)
     while True:
         if who_said_response_id == who_said_id:
