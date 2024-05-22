@@ -43,14 +43,14 @@ bot.who_said_context = None
     name="dejavu",
     description="Devjavu bot",
 )
-async def dejavu(ctx: discord.Interaction, arg: str):
+async def dejavu(interaction: discord.Interaction, arg: str):
     """
     On `/dejavu` grab a random message and post it
     """
 
-    await ctx.response.send_message('Command sent.')    
+    await interaction.response.send_message('Command sent.')    
     
-    channel = ctx.channel
+    channel = interaction.channel
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
