@@ -9,7 +9,7 @@ import os
 import time
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from random import choice, randrange
+from random import choice, randrange, getrandbits, seed
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
@@ -65,12 +65,12 @@ async def dejavu(inter, arg: str):
 
 def get_rand_datetime(start, end):
     # Combine current time with other factors for better seeding
-    seed = int(time.time() * 1000000) ^ random.getrandbits(32)
-    random.seed(seed)
+    seed = int(time.time() * 1000000) ^ getrandbits(32)
+    seed(seed)
 
     delta = end - start
     int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
-    random_second = random.randrange(int_delta)
+    random_second = randrange(int_delta)
     return start + timedelta(seconds=random_second)
 
 async def create_and_send_response(rand_message, channel, arg):
