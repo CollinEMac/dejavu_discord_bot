@@ -151,7 +151,9 @@ async def on_message(message):
 
     # this if statement only returns true if who_said has run before this
     if len(message.mentions) > 0 and bot.who_said_context is not None:
+        print("first if triggered")
         if message.mentions[0].id == bot.who_said_context['author_id']:
+            print('2nd if triggered')
             await bot.who_said_context['channel'].send('Correct.')
             bot.who_said_context = None
 
