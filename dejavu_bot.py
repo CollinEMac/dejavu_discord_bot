@@ -160,10 +160,10 @@ async def on_message(message):
     if len(message.mentions) > 0 and message.mentions[0].name == bot.who_said_author:
         await message.reply('Correct.')
         bot.who_said_playing = False
-    elif bot.who_said_second_chance == True:
+    elif bot.who_said_playing == True and bot.who_said_second_chance == True:
         await message.reply('Wrong! I\'ll give you one more chance.')
         bot.who_said_second_chance = False
-    elif bot.who_said_second_chance == False:
+    elif bot.who_said_playing == True and bot.who_said_second_chance == False:
         await message.reply('Wrong again! It was ' + bot.who_said_author + '! Game over!.')
         bot.who_said_playing = False
 
