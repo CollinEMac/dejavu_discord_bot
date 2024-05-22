@@ -44,7 +44,7 @@ bot.who_said_context = None
     description="Devjavu bot",
 )
 async def dejavu(
-    ctx: discord.ApplicationContext, arg: str
+    ctx: discord.Context, arg: str
 ):
     """
     On `/dejavu` grab a random message and post it
