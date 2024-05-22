@@ -55,6 +55,7 @@ async def dejavu(inter, arg: str):
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
+    print(rand_datetime)
 
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
