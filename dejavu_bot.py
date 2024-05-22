@@ -39,19 +39,19 @@ VERY_DARK_COLORS = [
 
 bot.who_said_context = None
 
-@bot.command(
+@tree.command(
     name="dejavu",
     description="Devjavu bot",
 )
-async def dejavu(ctx, arg: str):
+async def dejavu(interaction, arg: str):
     """
     On `/dejavu` grab a random message and post it
     """
     
-    await ctx.response.send_message('Command sent.')    
+    await interaction.response.send_message('Command sent.')    
 
     
-    channel = ctx.channel.id
+    channel = bot.channel.id
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
