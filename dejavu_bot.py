@@ -23,7 +23,7 @@ intents.message_content = True
 
 # Set up slash commands
 bot = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
+tree = app_commands.CommandTree(bot)
 
 
 VERY_DARK_COLORS = [
