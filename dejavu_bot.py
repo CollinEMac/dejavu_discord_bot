@@ -1,8 +1,10 @@
 """
 This is all of the code for a discord bot that will find a random message in
-your channel history and send it formatted in an image with a background
+your channel history and send it in either text or image format and there is also
+a game where you have to guess who said the message
 
-invoke with `/dejavu`
+Invoke with `/dejavu`
+Arguments: text, image, whosaid
 """
 
 import os
@@ -27,6 +29,7 @@ bot = discord.Client(intents=intents)
 # Set up slash commands
 tree = app_commands.CommandTree(bot)
 
+# Colors for the image mode.
 VERY_DARK_COLORS = [
     'black',
     'darkblue',
@@ -38,12 +41,14 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
+# Initalize whosaid game variables
 bot.whosaid = {}
 bot.whosaid['playing'] = False
 bot.whosaid['author'] = None
 bot.whosaid['message'] = ''
 bot.whosaid['second_chance'] = False
 
+# Command setup and argument definition.
 @tree.command(
     name="dejavu",
     description="Devjavu bot",
@@ -55,19 +60,27 @@ bot.whosaid['second_chance'] = False
     ])
 async def dejavu(inter, choices: app_commands.Choice[str]):
     """
-    On `/dejavu` grab a random message and post it
+    On `/dejavu text|image|whosaid` grab a random message and post it in the chosen format.
     """
+
+    # If a game of whosaid is already being played, do not continue.
     if bot.whosaid['playing'] == True:
         await inter.response.send_message('I\'m still waiting for you to guess.')
         return
 
+    # Send a message to confirm recipt of command.
+    # Else the bot will error.
+    # TODO: Find a way to run a command without
+    # something like this
     await inter.response.send_message('Command sent.')    
 
+    # Get a random datetime between now and when the channel was created
     channel = inter.channel
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
 
+    # Fetch a message using the random datetime
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
         if rand_message.content != '':
@@ -78,8 +91,7 @@ def get_rand_datetime(start, end):
     """
     https://stackoverflow.com/questions/553303/generate-a-random-date-between-two-other-dates
 
-    This function will return a random datetime between two datetime 
-    objects.
+    This function will return a random datetime between two datetime objects.
     """
     delta = end - start
     int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
@@ -87,10 +99,7 @@ def get_rand_datetime(start, end):
     return start + timedelta(seconds=random_second)
 
 async def create_and_send_response(rand_message, channel, choice):
-    """
-    Creates an image with the message author, content, and creation datetime
-    with a random colored background
-    """
+
     text = (
         rand_message.author.name +
         " said: \n" +
@@ -100,6 +109,9 @@ async def create_and_send_response(rand_message, channel, choice):
     )
 
     if choice == 'text':
+        # Sends the random message with the message author, content, 
+        #and creation datetime
+        # `/dejavu text`
         await channel.send(text)
     elif choice == 'image':
         await create_and_send_image(text, channel)
@@ -111,8 +123,9 @@ async def create_and_send_response(rand_message, channel, choice):
 
 async def create_and_send_image(text, channel):
     """
-    Handle the case where an image is requested
-    /dejavu image
+    Creates an image with the message author, content, and creation datetime
+    with a random colored background. TODO: Doesn't work right.
+    `/dejavu image`
     """
     font = ImageFont.truetype(
         "./fonts/Courier.ttf", # debian path
@@ -143,8 +156,12 @@ async def create_and_send_image(text, channel):
 
 async def whosaid(message, channel):
     """
-    Set inital game variables and start the game
+    A game where a message is presented and the user has to guess who wrote it
+    by mentioning the user. They get 2 guesses before game over.
+    /dejavu whosaid
     """
+
+    # Set inital game variables and start the game
     bot.whosaid['playing'] = True
     bot.whosaid['channel'] = message.channel.id
     bot.whosaid['second_chance'] = True
@@ -154,9 +171,12 @@ async def whosaid(message, channel):
 @bot.event
 async def on_message(message):
     """
-    check if the id in the response matches the
-    id if the whosaid game is being played
-    and make sure we're in the right channel
+    Check if the ID in the response matches the
+    ID of the user whose message got fetched by
+    the whosaid game and make sure we're in the
+    channel the game started in.
+
+    Then, the game logic runs.
     """
     
     if message.author.bot == True:
@@ -177,9 +197,10 @@ async def on_message(message):
         bot.whosaid['playing'] = False
         bot.whosaid['second_chance'] = True
 
-# Sync slash command to Discord
+# Sync slash command to Discord.
 @bot.event
 async def on_ready():
     await tree.sync()
 
+# Run bot and load the Discord bot token from a `.env` file.
 bot.run(os.environ.get('DISCORD_TOKEN'))
