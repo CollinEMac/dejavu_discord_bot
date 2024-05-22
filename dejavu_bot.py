@@ -159,13 +159,15 @@ async def on_message(message):
         await message.reply('Correct.')
         bot.who_said_user = None
         bot.who_said_second_chance = True
+        bot.who_said_playing = False
     elif bot.who_said_second_chance == True:
         await message.reply('Wrong! I\'ll give you one more chance.')
         bot.who_said_second_chance = False
     elif bot.who_said_second_chance == True:
         await message.reply('Wrong again! It was ' + bot.who_said_user + '! Game over!.')
-        bot.who_said_second_chance = True
         bot.who_said_user = None
+        bot.who_said_second_chance = True
+        bot.who_said_playing = False
 
 # Sync slash command to Discord
 @bot.event
