@@ -53,7 +53,7 @@ async def dejavu(inter, choices: app_commands.Choice[str]):
     """
     On `/dejavu` grab a random message and post it
     """
-    if bot.who_said_playing == False:
+    if bot.who_said_playing == True:
         await inter.response.send_message('I\'m still waiting for you to guess.')
         return
 
