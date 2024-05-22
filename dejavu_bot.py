@@ -93,12 +93,15 @@ async def create_and_send_response(rand_message, channel, arg):
     if arg == 'image':
         await create_and_send_image(text, channel)
     elif arg == 'whosaid':
+        print('whosaid if triggered')
         # if the arg is whosaid, store the message details in the bot's who_said_context
         bot.who_said_context = {
             'author_id': rand_message.author.id,
             'content': rand_message.content,
             'channel': channel
         }
+        for x in range(len(who_said_context)):
+            print who_said_context[x],
         await who_said(rand_message.content, channel)
     else:
         # /dejavu text
