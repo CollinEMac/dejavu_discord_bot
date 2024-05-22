@@ -47,13 +47,10 @@ async def dejavu(interaction: discord.Interaction, arg: str):
     """
     On `/dejavu` grab a random message and post it
     """
-
-    print(arg)
     
     await interaction.response.send_message('Command sent.')    
     
     channel = interaction.response.channel
-    print(channel)
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
@@ -88,23 +85,12 @@ async def create_and_send_response(rand_message, channel, arg):
         "\nat " +
         rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
     )
-
-    print(arg)
     
     if arg == 'image':
         await create_and_send_image(text, channel)
     elif arg == 'whosaid':
-        print('whosaid if triggered')
-        # if the arg is whosaid, store the message details in the bot's who_said_context
-        print(channel)
-        bot.who_said_context = {
-            'author_id': rand_message.author.id,
-            'content': rand_message.content,
-            'channel': channel
-        }
-        for x in range(len(who_said_context)):
-            print(who_said_context[x]),
-        await who_said(rand_message.content, channel)
+        # if the arg is whosaid, pass the rand_message.content to who_said
+        await who_said(rand_message.content)
     else:
         # /dejavu text
         # Just return the random message as text
@@ -142,9 +128,9 @@ async def create_and_send_image(text, channel):
 
 async def who_said(who_said_content, channel):
     """
-    Ask who said who_said_content and store the context
-    in the bot's who_said_context
+    Set who_said_playing to true so the if statement in on_message gets triggered
     """
+    bot.who_said_playing = True
     await channel.send('Who said: ' + who_said_content)
 
 @bot.event
@@ -156,18 +142,12 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    print(len(message.mentions))
-    print(message.mentions[0].id)
-
     # this if statement only returns true if who_said has run before this
-    if len(message.mentions) > 0 and bot.who_said_context is not None:
-        print("first if triggered")
+    if len(message.mentions) > 0 and bot.who_said_playing == True:
         for x in range(len(message.mentions)):
-            print (message.mentions[x]),
-        if message.mentions[0].id == bot.who_said_context['author_id']:
-            print('2nd if triggered')
-            await bot.who_said_context['channel'].send('Correct.')
-            bot.who_said_context = None
+        if message.mentions[0].id]:
+            await interaction.response.send_message('Correct.')
+            bot.who_said_playing = False
 
 # Sync slash command to Discord
 @bot.event
