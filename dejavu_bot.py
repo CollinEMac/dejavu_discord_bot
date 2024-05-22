@@ -55,7 +55,7 @@ async def dejavu(inter, choices: app_commands.Choice[str]):
     """
     if bot.who_said_playing == False:
         await inter.response.send_message('I\'m still waiting for you to guess.')
-        break
+        return
 
     await inter.response.send_message('Command sent.')    
 
