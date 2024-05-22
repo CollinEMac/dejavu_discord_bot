@@ -6,6 +6,7 @@ invoke with `/dejavu`
 """
 
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from random import choice, randrange
@@ -54,7 +55,6 @@ async def dejavu(inter, arg: str):
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
-    print(rand_datetime)
 
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
@@ -63,15 +63,13 @@ async def dejavu(inter, arg: str):
             break
 
 def get_rand_datetime(start, end):
-    """
-    https://stackoverflow.com/questions/553303/generate-a-random-date-between-two-other-dates
+    # Combine current time with other factors for better seeding
+    seed = int(time.time() * 1000000) ^ random.getrandbits(32)
+    random.seed(seed)
 
-    This function will return a random datetime between two datetime 
-    objects.
-    """
     delta = end - start
     int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
-    random_second = randrange(int_delta)
+    random_second = random.randrange(int_delta)
     return start + timedelta(seconds=random_second)
 
 async def create_and_send_response(rand_message, channel, arg):
