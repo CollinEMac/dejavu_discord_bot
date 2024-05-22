@@ -6,10 +6,9 @@ invoke with `/dejavu`
 """
 
 import os
-import time
-import random
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+from random import choice, randrange
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
@@ -38,6 +37,8 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
+bot.who_said_context = None
+
 @tree.command(
     name="dejavu",
     description="Devjavu bot",
@@ -62,15 +63,16 @@ async def dejavu(inter, arg: str):
             break
 
 def get_rand_datetime(start, end):
-  seed = int(time.time() * 1000000)
-  seed ^= int(os.urandom(8).hex(), 16)
-  random.seed(seed)
+    """
+    https://stackoverflow.com/questions/553303/generate-a-random-date-between-two-other-dates
 
-  delta = end - start
-  int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
-  random_second = random.randrange(int_delta)
-  return start + timedelta(seconds=random_second)
-
+    This function will return a random datetime between two datetime 
+    objects.
+    """
+    delta = end - start
+    int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+    random_second = randrange(int_delta)
+    return start + timedelta(seconds=random_second)
 
 async def create_and_send_response(rand_message, channel, arg):
     """
