@@ -44,9 +44,9 @@ bot.who_said_context = None
     description="Devjavu bot",
 )
 @app_commands.choices(choices=[
-    app_commands.choices(name="Retrieve a random message.", value="text"),
-    app_commands.choices(name="Retrieve a random message and put it in an image.", value="image"),
-    app_commands.choices(name="Retrieve a random message and you must guess who said it by mentioning them.", value="whosaid"),
+    app_commands.Choice(name="Retrieve a random message.", value="text"),
+    app_commands.Choice(name="Retrieve a random message and put it in an image.", value="image"),
+    app_commands.Choice(name="Retrieve a random message and you must guess who said it by mentioning them.", value="whosaid"),
     ])
 async def dejavu(inter, choices: app_commands.Choice[str]):
     """
