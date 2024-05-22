@@ -8,7 +8,7 @@ invoke with `/dejavu`
 import os
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from secrets import randbelow
+from random import choice, randrange
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
@@ -63,10 +63,16 @@ async def dejavu(inter, arg: str):
             break
 
 def get_rand_datetime(start, end):
-  delta = end - start
-  int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
-  random_second = randbelow(int_delta)
-  return start + timedelta(seconds=random_second)
+    """
+    https://stackoverflow.com/questions/553303/generate-a-random-date-between-two-other-dates
+
+    This function will return a random datetime between two datetime 
+    objects.
+    """
+    delta = end - start
+    int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+    random_second = randrange(int_delta)
+    return start + timedelta(seconds=random_second)
 
 async def create_and_send_response(rand_message, channel, arg):
     """
