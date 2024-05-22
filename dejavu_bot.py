@@ -158,7 +158,7 @@ async def on_message(message):
     if len(message.mentions) > 0 and bot.who_said_playing == True and bot.who_said_attempts > 0:
         await message.reply('Correct.')
         bot.who_said_playing = 1
-    elif bot.who_said_playing == 1:
+    elif bot.who_said_playing == True:
         await message.reply('Wrong! I\'ll give you one more chance.')
         bot.who_said_playing = 0
     else:
