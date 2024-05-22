@@ -90,7 +90,7 @@ async def create_and_send_response(rand_message, channel, arg):
         await create_and_send_image(text, channel)
     elif arg == 'whosaid':
         # if the arg is whosaid, pass the rand_message.content to who_said
-        await who_said(rand_message.content)
+        await who_said(rand_message.content, channel)
     else:
         # /dejavu text
         # Just return the random message as text
