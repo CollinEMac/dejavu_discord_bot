@@ -50,7 +50,7 @@ async def dejavu(ctx, arg: str):
     
     await ctx.response.send_message('Command sent.')    
 
-    channel = ctx.interaction.channel
+    channel = ctx.message.channel.id
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
