@@ -43,8 +43,6 @@ bot.who_said_context = None
     name="dejavu",
     description="Devjavu bot",
 )
-
-@bot.slash_command(name="dejavu")
 async def dejavu(
     ctx: discord.ApplicationContext, arg: str
 ):
