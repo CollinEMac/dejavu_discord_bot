@@ -154,6 +154,8 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    print(bot.who_said_playing)
+    
     # this if statement only returns true if who_said has run before this
     if len(message.mentions) > 0 and bot.who_said_playing == True and bot.who_said_attempts > 0:
         await message.reply('Correct.')
