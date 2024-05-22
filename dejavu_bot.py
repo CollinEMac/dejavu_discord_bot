@@ -142,6 +142,7 @@ async def who_said(who_said_message, channel):
     Set who_said_playing to true so the if statement in on_message gets triggered
     """
     bot.who_said_playing = True
+    bot.who_said_channel = who_said_message.channel.id
     bot.who_said_second_chance = True
     bot.who_said_author = who_said_message.author.name
     await channel.send('Who said: ' + who_said_message.content)
@@ -152,8 +153,10 @@ async def on_message(message):
     check if the id in the response matches the
     id if the whosaid game is being played
     """
-
+    
     if message.author.bot == True:
+        return
+    elif bot.who_said_channel != message.channel.id:
         return
 
     # this if statement only returns true if who_said has run before this
