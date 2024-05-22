@@ -144,8 +144,6 @@ async def on_message(message):
 
     # this if statement only returns true if who_said has run before this
     if len(message.mentions) > 0 and bot.who_said_playing == True:
-        for x in range(len(message.mentions)):
-        if message.mentions[0].id]:
             await interaction.response.send_message('Correct.')
             bot.who_said_playing = False
 
