@@ -42,6 +42,7 @@ bot.who_said_context = None
 @tree.command(
     name="dejavu",
     description="Devjavu bot",
+    channel = inter.channel.id
 )
 async def dejavu(interaction, arg: str):
     """
@@ -50,8 +51,6 @@ async def dejavu(interaction, arg: str):
     
     await interaction.response.send_message('Command sent.')    
 
-    
-    channel = bot.channel.id
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
