@@ -154,7 +154,7 @@ async def on_message(message):
     if len(message.mentions) > 0 and bot.who_said_context is not None:
         print("first if triggered")
         for x in range(len(message.mentions)):
-        print message.mentions[x],
+            print message.mentions[x],
         if message.mentions[0].id == bot.who_said_context['author_id']:
             print('2nd if triggered')
             await bot.who_said_context['channel'].send('Correct.')
