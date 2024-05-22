@@ -101,7 +101,7 @@ async def create_and_send_response(rand_message, channel, arg):
             'channel': channel
         }
         for x in range(len(who_said_context)):
-            print who_said_context[x],
+            print(who_said_context[x]),
         await who_said(rand_message.content, channel)
     else:
         # /dejavu text
