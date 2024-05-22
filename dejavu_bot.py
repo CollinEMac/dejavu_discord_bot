@@ -94,11 +94,13 @@ async def create_and_send_response(rand_message, channel, choices):
 
     if choices == 'text':
         await channel.send(text)
-    if choices == 'image':
+    elif choices == 'image':
         await create_and_send_image(text, channel)
     elif choices == 'whosaid':
         # if the arg is whosaid, pass the rand_message.content to who_said
         await who_said(rand_message.content, channel)
+    else:
+        await channel.send('Invalid Command.')
 
 async def create_and_send_image(text, channel):
     """
