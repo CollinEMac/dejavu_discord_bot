@@ -36,6 +36,7 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
+bot.who_said_playing = False
 bot.who_said_user = None
 bot.who_said_second_chance = True
 
