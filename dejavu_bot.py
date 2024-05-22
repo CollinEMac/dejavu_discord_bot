@@ -36,9 +36,8 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
-bot.who_said_playing = False
-bot.who_said_attempts = 2
 bot.who_said_user = None
+bot.who_said_second_chance = True
 
 @tree.command(
     name="dejavu",
@@ -155,18 +154,17 @@ async def on_message(message):
         return
 
     # this if statement only returns true if who_said has run before this
-    if len(message.mentions) > 0 and message.mentions[0].id == bot.who_said_user and bot.who_said_playing == True and bot.who_said_attempts > 1:
+    if len(message.mentions) > 0 and message.mentions[0].id == bot.who_said_user and bot.who_said_second_chance == False:
         await message.reply('Correct.')
-        bot.who_said_playing = False
-        bot.who_said_attempts = 2
         bot.who_said_user = None
-    elif bot.who_said_playing == True and bot.who_said_attempts == 1:
+        bot.who_said_second_chance = False
+    elif bot.bot.who_said_second_chance == True:
         await message.reply('Wrong! I\'ll give you one more chance.')
-        bot.who_said_attempts = 0
-    elif bot.who_said_playing == True and bot.who_said_attempts <= 0:
+        bot.who_said_second_chance = True
+    elif bot.who_said_second_chance = True:
         await message.reply('Wrong again! It was ' + bot.who_said_user + '! Game over!.')
-        bot.who_said_playing = False
-        bot.who_said_attempts = 2
+        bot.who_said_second_chance = False
+        bot.who_said_user = None
 
 # Sync slash command to Discord
 @bot.event
