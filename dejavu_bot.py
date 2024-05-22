@@ -42,12 +42,12 @@ bot.who_said_context = None
 @tree.command(
     name="dejavu",
     description="Devjavu bot",
-    @app_commands.choices(choice=[
-        app_commands.Choice(name="text", value="Retrieve a random message."),
-        app_commands.Choice(name="Rock", value="Retrieve a random message and put it in an image."),
-        app_commands.Choice(name="Rock", value="Retrieve a random message and you must guess who said it by mentioning them."),
-    ])
 )
+@app_commands.choices(choice=[
+    app_commands.Choice(name="text", value="Retrieve a random message."),
+    app_commands.Choice(name="Rock", value="Retrieve a random message and put it in an image."),
+    app_commands.Choice(name="Rock", value="Retrieve a random message and you must guess who said it by mentioning them."),
+    ])
 async def dejavu(inter, arg: str):
     """
     On `/dejavu` grab a random message and post it
