@@ -25,7 +25,6 @@ intents.message_content = True
 bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
-
 VERY_DARK_COLORS = [
     'black',
     'darkblue',
@@ -37,7 +36,9 @@ VERY_DARK_COLORS = [
     'purple'
 ]
 
-bot.who_said_context = None
+bot.who_said_playing = False
+bot.who_said_playing_attempts = 2
+bot.who_said_user = None
 
 @tree.command(
     name="dejavu",
@@ -52,7 +53,10 @@ async def dejavu(inter, choices: app_commands.Choice[str]):
     """
     On `/dejavu` grab a random message and post it
     """
-    
+    if bot.who_said_playing == False:
+        await inter.response.send_message('I\'m still waiting for you to guess.')
+        break
+
     await inter.response.send_message('Command sent.')    
 
     channel = inter.channel
@@ -97,7 +101,7 @@ async def create_and_send_response(rand_message, channel, choice):
         await create_and_send_image(text, channel)
     elif choice == 'whosaid':
         # if the arg is whosaid, pass the rand_message.content to who_said
-        await who_said(rand_message.content, channel)
+        await who_said(rand_message, channel)
     else:
         await channel.send('Invalid Command.')
 
@@ -133,12 +137,13 @@ async def create_and_send_image(text, channel):
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
 
-async def who_said(who_said_content, channel):
+async def who_said(who_said_message, channel):
     """
     Set who_said_playing to true so the if statement in on_message gets triggered
     """
     bot.who_said_playing = True
-    await channel.send('Who said: ' + who_said_content)
+    bot.who_said_user = who_said_message.author.member.name
+    await channel.send('Who said: ' + who_said_message.content)
 
 @bot.event
 async def on_message(message):
@@ -148,11 +153,21 @@ async def on_message(message):
     """
     if message.author == bot.user:
         return
+    elif
 
     # this if statement only returns true if who_said has run before this
-    if len(message.mentions) > 0 and bot.who_said_playing == True:
+    if len(message.mentions) > 0 and bot.who_said_playing == True and bot.who_said_attempts > 0:
             await message.reply('Correct.')
-            bot.who_said_playing = False
+            bot.who_said_playing = 1:
+    elif:
+        bot.who_said_playing == 1:
+        await message.reply('Wrong! I\'ll give you one more chance.')
+        bot.who_said_playing = 0:
+    elif:
+        bot.who_said_playing <= 0:
+        await message.reply('Wrong again! Game over!.')
+        bot.who_said_playing = False
+        bot.who_said_playing = 2:
 
 # Sync slash command to Discord
 @bot.event
