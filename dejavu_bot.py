@@ -37,7 +37,7 @@ VERY_DARK_COLORS = [
 ]
 
 bot.who_said_playing = False
-bot.who_said_user = None
+bot. = None
 bot.who_said_second_chance = True
 
 @tree.command(
@@ -142,7 +142,7 @@ async def who_said(who_said_message, channel):
     Set who_said_playing to true so the if statement in on_message gets triggered
     """
     bot.who_said_playing = True
-    bot.who_said_user = who_said_message.author.id
+    bot.who_said_author = who_said_message.author
     await channel.send('Who said: ' + who_said_message.content)
 
 @bot.event
@@ -151,21 +151,21 @@ async def on_message(message):
     check if the id in the response matches the
     id if the whosaid game is being played
     """
-    if message.author == bot.user:
+    if message.author == bot.author:
         return
 
     # this if statement only returns true if who_said has run before this
-    if len(message.mentions) > 0 and message.mentions[0].id == bot.who_said_user:
+    if len(message.mentions) > 0 and message.mentions[0].id == bot.who_said_author.id:
         await message.reply('Correct.')
-        bot.who_said_user = None
+        bot.who_said_author = None
         bot.who_said_second_chance = True
         bot.who_said_playing = False
     elif bot.who_said_second_chance == True:
         await message.reply('Wrong! I\'ll give you one more chance.')
         bot.who_said_second_chance = False
     elif bot.who_said_second_chance == False:
-        await message.reply('Wrong again! It was ' + bot.who_said_user + '! Game over!.')
-        bot.who_said_user = None
+        await message.reply('Wrong again! It was ' + bot.who_said_author.name + '! Game over!.')
+        bot. = None
         bot.who_said_second_chance = True
         bot.who_said_playing = False
 
