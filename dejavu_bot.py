@@ -37,7 +37,7 @@ VERY_DARK_COLORS = [
 ]
 
 bot.who_said_playing = False
-bot. = None
+bot.who_said_author = None
 bot.who_said_second_chance = True
 
 @tree.command(
