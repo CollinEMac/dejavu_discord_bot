@@ -152,7 +152,7 @@ async def on_message(message):
     id if the whosaid game is being played
     """
 
-    if message.member.bot == True:
+    if message.author.bot == True:
         return
 
     # this if statement only returns true if who_said has run before this
