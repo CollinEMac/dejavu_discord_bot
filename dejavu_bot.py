@@ -8,7 +8,7 @@ invoke with `/dejavu`
 import os
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from random import choice, randrange
+from random import choices, randrange
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
@@ -43,10 +43,10 @@ bot.who_said_context = None
     name="dejavu",
     description="Devjavu bot",
 )
-@app_commands.choices(choice=[
-    app_commands.Choice(name="text", value="Retrieve a random message."),
-    app_commands.Choice(name="Rock", value="Retrieve a random message and put it in an image."),
-    app_commands.Choice(name="Rock", value="Retrieve a random message and you must guess who said it by mentioning them."),
+@app_commands.choicess(choicess=[
+    app_commands.choices(name="text", value="Retrieve a random message."),
+    app_commands.choices(name="Rock", value="Retrieve a random message and put it in an image."),
+    app_commands.choices(name="Rock", value="Retrieve a random message and you must guess who said it by mentioning them."),
     ])
 async def dejavu(inter, arg: str):
     """
@@ -64,7 +64,7 @@ async def dejavu(inter, arg: str):
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
         if rand_message.content != '':
-            await create_and_send_response(rand_message, channel, choice.value)
+            await create_and_send_response(rand_message, channel, choices.value)
             break
 
 def get_rand_datetime(start, end):
@@ -79,7 +79,7 @@ def get_rand_datetime(start, end):
     random_second = randrange(int_delta)
     return start + timedelta(seconds=random_second)
 
-async def create_and_send_response(rand_message, channel, choice):
+async def create_and_send_response(rand_message, channel, choices):
     """
     Creates an image with the message author, content, and creation datetime
     with a random colored background
@@ -92,11 +92,11 @@ async def create_and_send_response(rand_message, channel, choice):
         rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
     )
 
-    if choice == 'text':
+    if choices == 'text':
         await channel.send(text)
-    if choice == 'image':
+    if choices == 'image':
         await create_and_send_image(text, channel)
-    elif choice == 'whosaid':
+    elif choices == 'whosaid':
         # if the arg is whosaid, pass the rand_message.content to who_said
         await who_said(rand_message.content, channel)
 
@@ -112,7 +112,7 @@ async def create_and_send_image(text, channel):
 
     # Convert dict_items to a list
     color_items = list(ImageColor.colormap.items())
-    rand_color = choice(color_items)[0]
+    rand_color = choices(color_items)[0]
     img = Image.new('RGB', (1000, 100), color=rand_color)
 
     img_draw = ImageDraw.Draw(img)
