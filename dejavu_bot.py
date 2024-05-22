@@ -156,6 +156,6 @@ async def on_message(message):
 # Sync slash command to Discord
 @bot.event
 async def on_ready():
-    await tree.sync(guild=discord.Object())
+    await tree.sync()
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
