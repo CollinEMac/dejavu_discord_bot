@@ -37,6 +37,8 @@ VERY_DARK_COLORS = [
     'navy',
     'purple'
 ]
+
+bot.whosaid = {}
 bot.whosaid['playing'] = False
 bot.whosaid['author'] = None
 bot.whosaid['message'] = ''
