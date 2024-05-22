@@ -142,7 +142,7 @@ async def who_said(who_said_message, channel):
     Set who_said_playing to true so the if statement in on_message gets triggered
     """
     bot.who_said_playing = True
-    bot.who_said_user = who_said_message.author.member.name
+    bot.who_said_user = who_said_message.author.name
     await channel.send('Who said: ' + who_said_message.content)
 
 @bot.event
