@@ -13,7 +13,7 @@ from random import choice, randrange
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
 import discord
-from discord.ext import commands
+from discord import app_commands
 
 from dotenv import load_dotenv
 load_dotenv()
