@@ -152,6 +152,9 @@ async def on_message(message):
     id if the whosaid game is being played
     """
 
+    if message.author == bot:
+        return
+
     # this if statement only returns true if who_said has run before this
     if len(message.mentions) > 0 and message.mentions[0].name == bot.who_said_author:
         await message.reply('Correct.')
