@@ -22,7 +22,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 # Set up slash commands
-client = discord.Client(intents=intents)
+bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 
