@@ -147,7 +147,7 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    print(len(message))
+    print(len(message.mentions))
     print(message.mentions[0].id)
 
     # this if statement only returns true if who_said has run before this
