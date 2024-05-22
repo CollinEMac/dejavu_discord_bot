@@ -43,7 +43,7 @@ bot.who_said_context = None
     name="dejavu",
     description="Devjavu bot",
 )
-@app_commands.Choice(choices=[
+@app_commands.choices(choices=[
     app_commands.Choice(name="Retrieve a random message.", value="text"),
     app_commands.Choice(name="Retrieve a random message and put it in an image.", value="image"),
     app_commands.Choice(name="Retrieve a random message and you must guess who said it by mentioning them.", value="whosaid"),
