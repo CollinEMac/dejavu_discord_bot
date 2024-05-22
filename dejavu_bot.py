@@ -48,6 +48,8 @@ async def dejavu(interaction: discord.Interaction, arg: str):
     On `/dejavu` grab a random message and post it
     """
 
+    print(arg)
+    
     await interaction.response.send_message('Command sent.')    
     
     channel = interaction.channel
