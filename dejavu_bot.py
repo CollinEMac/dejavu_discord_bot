@@ -62,13 +62,15 @@ async def dejavu(inter, arg: str):
             break
 
 def get_rand_datetime(start, end):
-  seed = int(time.time() * 1000000) ^ os.urandom(8).hex()
+  seed = int(time.time() * 1000000)
+  seed ^= int(os.urandom(8).hex(), 16)
   random.seed(seed)
 
   delta = end - start
   int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
   random_second = random.randrange(int_delta)
   return start + timedelta(seconds=random_second)
+
 
 async def create_and_send_response(rand_message, channel, arg):
     """
