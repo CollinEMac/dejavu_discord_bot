@@ -165,7 +165,7 @@ async def on_message(message):
         bot.who_said_second_chance = False
     elif bot.who_said_second_chance == False:
         await message.reply('Wrong again! It was ' + bot.who_said_author.name + '! Game over!.')
-        bot. = None
+        bot.who_said_author = None
         bot.who_said_second_chance = True
         bot.who_said_playing = False
 
