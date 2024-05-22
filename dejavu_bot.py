@@ -153,19 +153,18 @@ async def on_message(message):
     """
     if message.author == bot.user:
         return
-    elif
 
     # this if statement only returns true if who_said has run before this
     if len(message.mentions) > 0 and bot.who_said_playing == True and bot.who_said_attempts > 0:
-            await message.reply('Correct.')
-            bot.who_said_playing = 1:
+        await message.reply('Correct.')
+        bot.who_said_playing = 1:
     elif:
         bot.who_said_playing == 1:
         await message.reply('Wrong! I\'ll give you one more chance.')
         bot.who_said_playing = 0:
     elif:
         bot.who_said_playing <= 0:
-        await message.reply('Wrong again! Game over!.')
+        await message.reply('Wrong again! It was ' + bot.who_said_user + '! Game over!.')
         bot.who_said_playing = False
         bot.who_said_playing = 2:
 
