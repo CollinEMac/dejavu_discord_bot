@@ -88,6 +88,8 @@ async def create_and_send_response(rand_message, channel, arg):
         rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
     )
 
+    print(arg)
+    
     if arg == 'image':
         await create_and_send_image(text, channel)
     elif arg == 'whosaid':
