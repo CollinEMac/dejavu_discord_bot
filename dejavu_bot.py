@@ -144,7 +144,7 @@ async def on_message(message):
 
     # this if statement only returns true if who_said has run before this
     if len(message.mentions) > 0 and bot.who_said_playing == True:
-            await message.response.send_message('Correct.')
+            await message.reply('Correct.')
             bot.who_said_playing = False
 
 # Sync slash command to Discord
