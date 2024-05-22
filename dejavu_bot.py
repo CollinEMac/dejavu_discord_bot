@@ -43,7 +43,7 @@ bot.who_said_context = None
     name="dejavu",
     description="Devjavu bot",
 )
-@app_commands.Choice(choice=[
+@app_commands.Choice(choices=[
     app_commands.Choice(name="Retrieve a random message.", value="text"),
     app_commands.Choice(name="Retrieve a random message and put it in an image.", value="image"),
     app_commands.Choice(name="Retrieve a random message and you must guess who said it by mentioning them.", value="whosaid"),
@@ -64,7 +64,7 @@ async def dejavu(inter, choice: app_commands.Choice[str]):
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
         if rand_message.content != '':
-            await create_and_send_response(rand_message, channel, choice.value)
+            await create_and_send_response(rand_message, channel, choices.value)
             break
 
 def get_rand_datetime(start, end):
