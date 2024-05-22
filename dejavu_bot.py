@@ -95,6 +95,7 @@ async def create_and_send_response(rand_message, channel, arg):
     elif arg == 'whosaid':
         print('whosaid if triggered')
         # if the arg is whosaid, store the message details in the bot's who_said_context
+        print(channel)
         bot.who_said_context = {
             'author_id': rand_message.author.id,
             'content': rand_message.content,
