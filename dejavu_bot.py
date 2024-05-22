@@ -45,8 +45,9 @@ VERY_DARK_COLORS = [
 # Initalize whosaid game variables
 bot.whosaid = {}
 bot.whosaid["playing"] = False
+bot.whosaid["channel"] = None
 bot.whosaid["author"] = None
-bot.whosaid["message"] = ""
+bot.whosaid["message"] = None
 bot.whosaid["second_chance"] = False
 
 # Command setup and argument definition.
