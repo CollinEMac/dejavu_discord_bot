@@ -163,7 +163,7 @@ async def on_message(message):
     elif bot.who_said_second_chance == True:
         await message.reply('Wrong! I\'ll give you one more chance.')
         bot.who_said_second_chance = False
-    elif bot.who_said_second_chance == True:
+    elif bot.who_said_second_chance == False:
         await message.reply('Wrong again! It was ' + bot.who_said_user + '! Game over!.')
         bot.who_said_user = None
         bot.who_said_second_chance = True
