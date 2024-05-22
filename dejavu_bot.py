@@ -155,7 +155,7 @@ async def on_message(message):
         return
 
     # this if statement only returns true if who_said has run before this
-    if len(message.mentions) >= 2 and bot.who_said_playing == True and bot.who_said_attempts > 0:
+    if len(message.mentions) > 0 and bot.who_said_playing == True and bot.who_said_attempts > 0:
         await message.reply('Correct.')
         bot.who_said_playing = 1
     elif bot.who_said_playing == 1:
