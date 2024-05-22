@@ -142,7 +142,7 @@ async def who_said(who_said_message, channel):
     Set who_said_playing to true so the if statement in on_message gets triggered
     """
     bot.who_said_playing = True
-    bot.who_said_user = who_said_message.author.name
+    bot.who_said_user = who_said_message.author
     await channel.send('Who said: ' + who_said_message.content)
 
 @bot.event
@@ -158,7 +158,7 @@ async def on_message(message):
     print(bot.who_said_attempts)
 
     # this if statement only returns true if who_said has run before this
-    if len(message.mentions) > 0 and bot.who_said_playing == True and bot.who_said_attempts > 1:
+    if len(message.mentions) > 0 and message.author == bot.who_said_user and bot.who_said_playing == True and bot.who_said_attempts > 1:
         await message.reply('Correct.')
         bot.who_said_playing = False
         bot.who_said_attempts = 1
