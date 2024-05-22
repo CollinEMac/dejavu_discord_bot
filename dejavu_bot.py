@@ -39,7 +39,7 @@ VERY_DARK_COLORS = [
 
 bot.who_said_context = None
 
-@tree.command(
+@bot.command(
     name="dejavu",
     description="Devjavu bot",
 )
@@ -50,7 +50,8 @@ async def dejavu(ctx, arg: str):
     
     await ctx.response.send_message('Command sent.')    
 
-    message = ctx.message.id
+    
+    channel = ctx.channel.id
     created_at = channel.created_at
     end = datetime.utcnow().replace(tzinfo=timezone.utc)
     rand_datetime = get_rand_datetime(created_at, end)
@@ -144,7 +145,7 @@ async def on_message(message):
 
     # this if statement only returns true if who_said has run before this
     if len(message.mentions) > 0 and bot.who_said_playing == True:
-            await ctx.response.send_message('Correct.')
+            await interaction.response.send_message('Correct.')
             bot.who_said_playing = False
 
 # Sync slash command to Discord
