@@ -8,7 +8,8 @@ invoke with `/dejavu`
 import os
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from random import choices, randrange
+from random import randrange
+from random import choices as randchoices
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
@@ -113,7 +114,7 @@ async def create_and_send_image(text, channel):
 
     # Convert dict_items to a list
     color_items = list(ImageColor.colormap.items())
-    rand_color = choices(color_items)[0]
+    rand_color = randchoices(color_items)[0]
     img = Image.new('RGB', (1000, 100), color=rand_color)
 
     img_draw = ImageDraw.Draw(img)
