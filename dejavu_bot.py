@@ -46,7 +46,7 @@ bot.who_said_context = None
         app_commands.Choice(name="text", value="Retrieve a random message."),
         app_commands.Choice(name="Rock", value="Retrieve a random message and put it in an image."),
         app_commands.Choice(name="Rock", value="Retrieve a random message and you must guess who said it by mentioning them."),
-    ]
+    ])
 )
 async def dejavu(inter, arg: str):
     """
