@@ -15,14 +15,16 @@ from PIL import Image, ImageColor, ImageDraw, ImageFont
 import discord
 from discord import app_commands
 
+# Load .env file
 from dotenv import load_dotenv
 load_dotenv()
 
+# Set up bot
 intents = discord.Intents.default()
 intents.message_content = True
+bot = discord.Client(intents=intents)
 
 # Set up slash commands
-bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
 VERY_DARK_COLORS = [
@@ -35,10 +37,10 @@ VERY_DARK_COLORS = [
     'navy',
     'purple'
 ]
-
-bot.who_said_playing = False
-bot.who_said_author = None
-bot.who_said_second_chance = True
+bot.whosaid['playing'] = False
+bot.whosaid['author'] = None
+bot.whosaid['message'] = ''
+bot.whosaid['second_chance'] = False
 
 @tree.command(
     name="dejavu",
@@ -53,7 +55,7 @@ async def dejavu(inter, choices: app_commands.Choice[str]):
     """
     On `/dejavu` grab a random message and post it
     """
-    if bot.who_said_playing == True:
+    if bot.whosaid['playing'] == True:
         await inter.response.send_message('I\'m still waiting for you to guess.')
         return
 
@@ -100,8 +102,8 @@ async def create_and_send_response(rand_message, channel, choice):
     elif choice == 'image':
         await create_and_send_image(text, channel)
     elif choice == 'whosaid':
-        # if the arg is whosaid, pass the rand_message.content to who_said
-        await who_said(rand_message, channel)
+        # if the choice is whosaid, pass the rand_message and channel to whosaid()
+        await whosaid(rand_message, channel)
     else:
         await channel.send('Invalid Command.')
 
@@ -137,40 +139,41 @@ async def create_and_send_image(text, channel):
     file = discord.File(buffer, filename='image.png')
     await channel.send(file=file)
 
-async def who_said(who_said_message, channel):
+async def whosaid(message, channel):
     """
-    Set who_said_playing to true so the if statement in on_message gets triggered
+    Set inital game variables and start the game
     """
-    bot.who_said_playing = True
-    bot.who_said_channel = who_said_message.channel.id
-    bot.who_said_second_chance = True
-    bot.who_said_author = who_said_message.author.name
-    await channel.send('Who said: ' + who_said_message.content)
+    bot.whosaid['playing'] = True
+    bot.whosaid['channel'] = message.channel.id
+    bot.whosaid['second_chance'] = True
+    bot.whosaid['author'] = message.author.name
+    await channel.send('Who said: ' + message.content)
 
 @bot.event
 async def on_message(message):
     """
     check if the id in the response matches the
     id if the whosaid game is being played
+    and make sure we're in the right channel
     """
     
     if message.author.bot == True:
         return
-    elif bot.who_said_channel != message.channel.id:
+    elif bot.whosaid['channel'] != message.channel.id:
         return
 
-    # this if statement only returns true if who_said has run before this
-    if len(message.mentions) > 0 and message.mentions[0].name == bot.who_said_author and bot.who_said_playing == True:
+    # This if statement only returns true if whosaid() has run before this
+    if len(message.mentions) > 0 and message.mentions[0].name == bot.whosaid['author'] and bot.whosaid['playing'] == True:
         await message.reply('Correct.')
-        bot.who_said_playing = False
-        bot.who_said_second_chance = True
-    elif bot.who_said_playing == True and bot.who_said_second_chance == True:
+        bot.whosaid['playing'] = False
+        bot.whosaid['second_chance'] = True
+    elif bot.whosaid['playing'] == True and bot.whosaid['second_chance'] == True:
         await message.reply('Wrong! I\'ll give you one more chance.')
-        bot.who_said_second_chance = False
-    elif bot.who_said_playing == True and bot.who_said_second_chance == False:
-        await message.reply('Wrong again! It was ' + bot.who_said_author + '! Game over!.')
-        bot.who_said_playing = False
-        bot.who_said_second_chance = True
+        bot.whosaid['second_chance'] = False
+    elif bot.whosaid['playing == True and bot.whosaid['second_chance'] == False:
+        await message.reply('Wrong again! It was ' + bot.whosaid['author'] + '! Game over!.')
+        bot.whosaid['playing'] = False
+        bot.whosaid['second_chance'] = True
 
 # Sync slash command to Discord
 @bot.event
