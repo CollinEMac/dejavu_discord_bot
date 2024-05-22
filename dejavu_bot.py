@@ -21,7 +21,10 @@ load_dotenv()
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='/', intents=intents)
+# Set up slash commands
+client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
+
 
 VERY_DARK_COLORS = [
     'black',
@@ -36,8 +39,15 @@ VERY_DARK_COLORS = [
 
 bot.who_said_context = None
 
-@bot.command()
-async def dejavu(ctx, arg):
+@tree.command(
+    name="dejavu",
+    description="Devjavu bot",
+)
+
+@bot.slash_command(name="dejavu")
+async def dejavu(
+    ctx: discord.ApplicationContext, arg: str
+):
     """
     On `/dejavu` grab a random message and post it
     """
@@ -146,5 +156,10 @@ async def on_message(message):
         if message.mentions[0].id == bot.who_said_context['author_id']:
             await bot.who_said_context['channel'].send('Correct.')
             bot.who_said_context = None
+
+# Sync slash command to Discord
+@bot.event
+async def on_ready():
+    await tree.sync(guild=discord.Object())
 
 bot.run(os.environ.get('DISCORD_TOKEN'))
