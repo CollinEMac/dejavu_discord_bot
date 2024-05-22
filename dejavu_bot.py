@@ -10,7 +10,7 @@ Arguments: text, image, whosaid
 import os
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from random import choices, randrange
+from random import randrange
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
