@@ -42,6 +42,11 @@ bot.who_said_context = None
 @tree.command(
     name="dejavu",
     description="Devjavu bot",
+    @app_commands.choices(choice=[
+        app_commands.Choice(name="text", value="Retrieve a random message."),
+        app_commands.Choice(name="Rock", value="Retrieve a random message and put it in an image."),
+        app_commands.Choice(name="Rock", value="Retrieve a random message and you must guess who said it by mentioning them."),
+    ]
 )
 async def dejavu(inter, arg: str):
     """
@@ -59,7 +64,7 @@ async def dejavu(inter, arg: str):
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
         if rand_message.content != '':
-            await create_and_send_response(rand_message, channel, arg)
+            await create_and_send_response(rand_message, channel, choice.value)
             break
 
 def get_rand_datetime(start, end):
@@ -74,7 +79,7 @@ def get_rand_datetime(start, end):
     random_second = randrange(int_delta)
     return start + timedelta(seconds=random_second)
 
-async def create_and_send_response(rand_message, channel, arg):
+async def create_and_send_response(rand_message, channel, choice):
     """
     Creates an image with the message author, content, and creation datetime
     with a random colored background
@@ -86,16 +91,14 @@ async def create_and_send_response(rand_message, channel, arg):
         "\nat " +
         rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
     )
-    
-    if arg == 'image':
+
+    if choice == 'text':
+        await channel.send(text)
+    if choice == 'image':
         await create_and_send_image(text, channel)
-    elif arg == 'whosaid':
+    elif choice == 'whosaid':
         # if the arg is whosaid, pass the rand_message.content to who_said
         await who_said(rand_message.content, channel)
-    else:
-        # /dejavu text
-        # Just return the random message as text
-        await channel.send(text)
 
 async def create_and_send_image(text, channel):
     """
