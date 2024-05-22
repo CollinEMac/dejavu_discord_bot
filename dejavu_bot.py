@@ -43,12 +43,12 @@ bot.who_said_context = None
     name="dejavu",
     description="Devjavu bot",
 )
-@app_commands.choices(choices=[
+@app_commands.choice(choice=[
     app_commands.Choice(name="Retrieve a random message.", value="text"),
     app_commands.Choice(name="Retrieve a random message and put it in an image.", value="image"),
     app_commands.Choice(name="Retrieve a random message and you must guess who said it by mentioning them.", value="whosaid"),
     ])
-async def dejavu(inter, choices: app_commands.Choice[str]):
+async def dejavu(inter, choice: app_commands.Choice[str]):
     """
     On `/dejavu` grab a random message and post it
     """
@@ -64,7 +64,7 @@ async def dejavu(inter, choices: app_commands.Choice[str]):
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
         if rand_message.content != '':
-            await create_and_send_response(rand_message, channel, choices.value)
+            await create_and_send_response(rand_message, channel, choice.value)
             break
 
 def get_rand_datetime(start, end):
@@ -79,7 +79,7 @@ def get_rand_datetime(start, end):
     random_second = randrange(int_delta)
     return start + timedelta(seconds=random_second)
 
-async def create_and_send_response(rand_message, channel, choices):
+async def create_and_send_response(rand_message, channel, choice):
     """
     Creates an image with the message author, content, and creation datetime
     with a random colored background
@@ -92,11 +92,11 @@ async def create_and_send_response(rand_message, channel, choices):
         rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
     )
 
-    if choices == 'text':
+    if choice == 'text':
         await channel.send(text)
-    elif choices == 'image':
+    elif choice == 'image':
         await create_and_send_image(text, channel)
-    elif choices == 'whosaid':
+    elif choice == 'whosaid':
         # if the arg is whosaid, pass the rand_message.content to who_said
         await who_said(rand_message.content, channel)
     else:
