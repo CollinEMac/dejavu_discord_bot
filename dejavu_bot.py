@@ -67,7 +67,7 @@ bot.whosaid["second_chance"] = False
         ),
     ]
 )
-async def dejavu(inter, arg: app_commands.Choice[str]):
+async def dejavu(inter, choices: app_commands.Choice[str]):
     """
     On `/dejavu text|image|whosaid` grab a random message and post it in the chosen format.
     """
