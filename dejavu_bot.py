@@ -212,10 +212,10 @@ async def on_message(message):
 
 # Sync slash command to Discord.
 @bot.event
-"""
-on_ready() syncs and updates the slash commands on the Discord server.
-"""
 async def on_ready():
+    """
+    on_ready() syncs and updates the slash commands on the Discord server.
+    """
     await tree.sync()
 
 
