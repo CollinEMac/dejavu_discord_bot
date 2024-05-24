@@ -93,7 +93,7 @@ async def dejavu(inter, choices: app_commands.Choice[str]):
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
         if rand_message.content != "":
-            await create_and_send_response(rand_message, channel, arg.value)
+            await create_and_send_response(rand_message, channel, choices.value)
             break
 
 
