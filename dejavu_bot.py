@@ -67,13 +67,13 @@ bot.whosaid["second_chance"] = False
         ),
     ]
 )
-async def dejavu(inter, choices: app_commands.Choice[str]):
+async def dejavu(inter, arg: app_commands.Choice[str]):
     """
     On `/dejavu text|image|whosaid` grab a random message and post it in the chosen format.
     """
 
     # If a game of whosaid is already being played, do not continue.
-    if bot.whosaid["playing"] == True:
+    if bot.whosaid["playing"] is True:
         await inter.response.send_message("I'm still waiting for you to guess.")
         return
 
@@ -93,7 +93,7 @@ async def dejavu(inter, choices: app_commands.Choice[str]):
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
         if rand_message.content != "":
-            await create_and_send_response(rand_message, channel, choices.value)
+            await create_and_send_response(rand_message, channel, arg.value)
             break
 
 
@@ -144,9 +144,8 @@ async def create_and_send_image(text, channel):
     # Convert dict_items to a list
     color_items = list(ImageColor.colormap.items())
 
-    rand_color_name = choices(list(ImageColor.colormap.keys()))[0]
-    rand_color = ImageColor.getrgb(rand_color_name)
-    img = Image.new("RGB", (1000, 100), color=rand_color)
+    rand_color = choice(color_items)[0]
+    img = Image.new('RGB', (1000, 100), color=rand_color)
 
     img_draw = ImageDraw.Draw(img)
 
@@ -190,7 +189,7 @@ async def on_message(message):
     Then, the game logic runs.
     """
 
-    if message.author.bot == True:
+    if message.author.bot is True:
         return
     elif bot.whosaid["channel"] != message.channel.id:
         return
@@ -199,15 +198,15 @@ async def on_message(message):
     if (
         len(message.mentions) > 0
         and message.mentions[0].name == bot.whosaid["author"]
-        and bot.whosaid["playing"] == True
+        and bot.whosaid["playing"] is True
     ):
         await message.reply("Correct.")
         bot.whosaid["playing"] = False
         bot.whosaid["second_chance"] = True
-    elif bot.whosaid["playing"] == True and bot.whosaid["second_chance"] == True:
+    elif bot.whosaid["playing"] is True and bot.whosaid["second_chance"] is True:
         await message.reply("Wrong! I'll give you one more chance.")
         bot.whosaid["second_chance"] = False
-    elif bot.whosaid["playing"] == True and bot.whosaid["second_chance"] == False:
+    elif bot.whosaid["playing"] is True and bot.whosaid["second_chance"] is False:
         await message.reply(
             "Wrong again! It was " + bot.whosaid["author"] + "! Game over!."
         )
