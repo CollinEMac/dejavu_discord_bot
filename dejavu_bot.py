@@ -135,8 +135,6 @@ async def create_and_send_response(rand_message, channel, choice):
 
 async def create_and_send_image(text, channel):
     """
-    Creates an image with the message author, content, and creation datetime
-    with a random colored background. TODO: Doesn't work right.
     `/dejavu image`
     """
     font = ImageFont.truetype("./fonts/Courier.ttf", size=14)  # debian path
@@ -189,9 +187,7 @@ async def on_message(message):
     Then, the game logic runs.
     """
 
-    if message.author.bot is True:
-        return
-    elif bot.whosaid["channel"] != message.channel.id:
+    if message.author.bot == True or bot.whosaid["channel"] != message.channel.id:
         return
 
     # This if statement only returns true if whosaid() has run before this
@@ -216,6 +212,9 @@ async def on_message(message):
 
 # Sync slash command to Discord.
 @bot.event
+"""
+on_ready() syncs and updates the slash commands on the Discord server.
+"""
 async def on_ready():
     await tree.sync()
 
