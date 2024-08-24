@@ -24,6 +24,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class DejavuBot(discord.Client):
+    VERY_DARK_COLORS = [
+        "black",
+        "darkblue",
+        "darkmagenta",
+        "darkslategrey",
+        "indigo",
+        "midnightblue",
+        "navy",
+        "purple",
+    ]
+
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
@@ -67,7 +78,7 @@ class DejavuBot(discord.Client):
         channel = inter.channel
         created_at = channel.created_at
         end = datetime.utcnow().replace(tzinfo=timezone.utc)
-        rand_datetime = get_rand_datetime(created_at, end)
+        rand_datetime = self.get_rand_datetime(created_at, end)
 
         # Fetch a message using the random datetime
         # limit=1 so we only get one message (we could change this later to add more?)
@@ -81,18 +92,13 @@ class DejavuBot(discord.Client):
 
     async def on_message(self, message: discord.Message):
         """
-        Check if the ID in the response matches the
-        ID of the user whose message got fetched by
-        the whosaid game and make sure we're in the
-        channel the game started in.
-
-        Then, the game logic runs.
+        Check if the message is a valid guess for the ongoing game and process it.
         """
+        if (not message.author.bot and 
+            self.whosaid["channel"] == message.channel.id and
+            self.whosaid["playing"] and 
+            len(message.mentions) > 0):
 
-        if message.author.bot or self.whosaid["channel"] != message.channel.id:
-            return
-
-        if self.whosaid["playing"] and len(message.mentions) > 0:
             guessed_user = message.mentions[0].name
             correct_user = self.whosaid["author"]
 
@@ -103,125 +109,119 @@ class DejavuBot(discord.Client):
 
             self.whosaid["playing"] = False
 
+    async def create_and_send_response(self, rand_message, channel, choice):
+        text = (
+            rand_message.author.name
+            + " said: \n"
+            + rand_message.content
+            + "\nat "
+            + rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
+        )
 
-def get_rand_datetime(start, end):
-    """
-    https://stackoverflow.com/questions/553303/generate-a-random-date-between-two-other-dates
+        if choice == "text":
+            # Sends the random message with the message author, content,
+            # and creation datetime
+            # `/dejavu text`
+            await channel.send(text)
+        elif choice == "image":
+            await self.create_and_send_image(text, channel)
+        elif choice == "whosaid":
+            # if the choice is whosaid, pass the rand_message and channel to who_said()
+            await self.who_said(rand_message, channel)
+        else:
+            await channel.send("Invalid Command.")
 
-    This function will return a random datetime between two datetime objects.
-    """
-    delta = end - start
-    int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
-    random_second = randrange(int_delta)
-    return start + timedelta(seconds=random_second)
+    async def create_and_send_image(self, text, channel):
+        """
+        `/dejavu image`
+        """
+        font = ImageFont.truetype("./fonts/Courier.ttf", size=14)  # debian path
 
+        # Convert dict_items to a list
+        color_items = list(ImageColor.colormap.items())
 
-async def create_and_send_response(self, rand_message, channel, choice):
+        rand_color = choice(color_items)[0]
+        img = Image.new('RGB', (1000, 100), color=rand_color)
 
-    text = (
-        rand_message.author.name
-        + " said: \n"
-        + rand_message.content
-        + "\nat "
-        + rand_message.created_at.strftime("%Y-%m-%d %I:%M %p")
-    )
+        img_draw = ImageDraw.Draw(img)
 
-    if choice == "text":
-        # Sends the random message with the message author, content,
-        # and creation datetime
-        # `/dejavu text`
-        await channel.send(text)
-    elif choice == "image":
-        await self.create_and_send_image(text, channel)
-    elif choice == "whosaid":
-        # if the choice is whosaid, pass the rand_message and channel to whosaid()
-        await self.whosaid(rand_message, channel)
-    else:
-        await channel.send("Invalid Command.")
+        if rand_color not in self.VERY_DARK_COLORS:
+            img_draw.text((0, 25), text, font=font, fill=(0, 0, 0))
+        else:
+            img_draw.text((0, 25), text, font=font, fill=(255, 255, 255))
 
+        # Save the image to a BytesIO buffer
+        buffer = BytesIO()
+        img.save(buffer, "png")
+        buffer.seek(0)  # Reset the buffer pointer to the beginning
 
-async def create_and_send_image(self, text, channel):
-    """
-    `/dejavu image`
-    """
-    font = ImageFont.truetype("./fonts/Courier.ttf", size=14)  # debian path
+        file = discord.File(buffer, filename="image.png")
+        await channel.send(file=file)
 
-    # Convert dict_items to a list
-    color_items = list(ImageColor.colormap.items())
+    async def who_said(self, message, channel):
+        """
+        A game where a message is presented and the user has to guess who wrote it
+        by mentioning the user. They get 2 guesses before game over.
+        /dejavu whosaid
+        """
 
-    rand_color = choice(color_items)[0]
-    img = Image.new('RGB', (1000, 100), color=rand_color)
+        # Set inital game variables and start the game
+        self.whosaid["playing"] = True
+        self.whosaid["channel"] = message.channel.id
+        self.whosaid["second_chance"] = True
+        self.whosaid["author"] = message.author.name
+        await channel.send("Who said: " + message.content)
 
-    img_draw = ImageDraw.Draw(img)
+    async def word_champion(self, channel):
+        """
+        A game where players guess who said a random word most frequently.
+        """
+        self.whosaid["playing"] = True
+        self.whosaid["channel"] = channel.id
 
-    if rand_color not in VERY_DARK_COLORS:
-        img_draw.text((0, 25), text, font=font, fill=(0, 0, 0))
-    else:
-        img_draw.text((0, 25), text, font=font, fill=(255, 255, 255))
+        # Fetch a large number of messages
+        messages = await channel.history(limit=1000).flatten()
 
-    # Save the image to a BytesIO buffer
-    buffer = BytesIO()
-    img.save(buffer, "png")
-    buffer.seek(0)  # Reset the buffer pointer to the beginning
+        # Count words for each author
+        word_counts = {}
+        for message in messages:
+            author = message.author.name
+            if author not in word_counts:
+                word_counts[author] = Counter()
+            word_counts[author].update(message.content.lower().split())
 
-    file = discord.File(buffer, filename="image.png")
-    await channel.send(file=file)
+        # Find words that appear more than once
+        common_words = set()
+        for author_counts in word_counts.values():
+            common_words.update(word for word, count in author_counts.items() if count > 1)
 
+        if not common_words:
+            await channel.send("Not enough data to play the game. Try chatting more!")
+            self.whosaid["playing"] = False
+            return
 
-async def whosaid(self, message, channel):
-    """
-    A game where a message is presented and the user has to guess who wrote it
-    by mentioning the user. They get 2 guesses before game over.
-    /dejavu whosaid
-    """
+        # Choose a random word from common words
+        chosen_word = choice(list(common_words))
 
-    # Set inital game variables and start the game
-    self.whosaid["playing"] = True
-    self.whosaid["channel"] = message.channel.id
-    self.whosaid["second_chance"] = True
-    self.whosaid["author"] = message.author.name
-    await channel.send("Who said: " + message.content)
+        # Find the author who said it most
+        champion = max(word_counts.keys(), key=lambda author: word_counts[author][chosen_word])
 
+        self.whosaid["author"] = champion
+        self.whosaid["message"] = f"Who said the word '{chosen_word}' the most?"
 
-async def word_champion(self, channel):
-    """
-    A game where players guess who said a random word most frequently.
-    """
-    self.whosaid["playing"] = True
-    self.whosaid["channel"] = channel.id
+        await channel.send(self.whosaid["message"])
 
-    # Fetch a large number of messages
-    messages = await channel.history(limit=1000).flatten()
+    @staticmethod
+    def get_rand_datetime(start, end):
+        """
+        https://stackoverflow.com/questions/553303/generate-a-random-date-between-two-other-dates
 
-    # Count words for each author
-    word_counts = {}
-    for message in messages:
-        author = message.author.name
-        if author not in word_counts:
-            word_counts[author] = Counter()
-        word_counts[author].update(message.content.lower().split())
-
-    # Find words that appear more than once
-    common_words = set()
-    for author_counts in word_counts.values():
-        common_words.update(word for word, count in author_counts.items() if count > 1)
-
-    if not common_words:
-        await channel.send("Not enough data to play the game. Try chatting more!")
-        self.whosaid["playing"] = False
-        return
-
-    # Choose a random word from common words
-    chosen_word = choice(list(common_words))
-
-    # Find the author who said it most
-    champion = max(word_counts.keys(), key=lambda author: word_counts[author][chosen_word])
-    champion_count = word_counts[champion][chosen_word]
-
-    self.whosaid["author"] = champion
-    self.whosaid["message"] = f"Who said the word '{chosen_word}' the most?"
-
-    await channel.send(self.whosaid["message"])
+        This function will return a random datetime between two datetime objects.
+        """
+        delta = end - start
+        int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
+        random_second = randrange(int_delta)
+        return start + timedelta(seconds=random_second)
 
 
 def main():
