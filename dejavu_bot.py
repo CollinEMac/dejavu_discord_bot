@@ -74,9 +74,9 @@ class DejavuBot(discord.Client):
         async for rand_message in channel.history(limit=1, around=rand_datetime):
             if rand_message.content != "":
                 if choices.value == "word_champion":
-                    await word_champion(channel)
+                    await self.word_champion(channel)
                 else:
-                    await create_and_send_response(rand_message, channel, choices.value)
+                    await self.create_and_send_response(rand_message, channel, choices.value)
                 break
 
     async def on_message(self, message: discord.Message):
@@ -116,7 +116,7 @@ def get_rand_datetime(start, end):
     return start + timedelta(seconds=random_second)
 
 
-async def create_and_send_response(rand_message, channel, choice):
+async def create_and_send_response(self, rand_message, channel, choice):
 
     text = (
         rand_message.author.name
@@ -132,15 +132,15 @@ async def create_and_send_response(rand_message, channel, choice):
         # `/dejavu text`
         await channel.send(text)
     elif choice == "image":
-        await create_and_send_image(text, channel)
+        await self.create_and_send_image(text, channel)
     elif choice == "whosaid":
         # if the choice is whosaid, pass the rand_message and channel to whosaid()
-        await whosaid(rand_message, channel)
+        await self.whosaid(rand_message, channel)
     else:
         await channel.send("Invalid Command.")
 
 
-async def create_and_send_image(text, channel):
+async def create_and_send_image(self, text, channel):
     """
     `/dejavu image`
     """
@@ -168,7 +168,7 @@ async def create_and_send_image(text, channel):
     await channel.send(file=file)
 
 
-async def whosaid(message, channel):
+async def whosaid(self, message, channel):
     """
     A game where a message is presented and the user has to guess who wrote it
     by mentioning the user. They get 2 guesses before game over.
@@ -176,19 +176,19 @@ async def whosaid(message, channel):
     """
 
     # Set inital game variables and start the game
-    bot.whosaid["playing"] = True
-    bot.whosaid["channel"] = message.channel.id
-    bot.whosaid["second_chance"] = True
-    bot.whosaid["author"] = message.author.name
+    self.whosaid["playing"] = True
+    self.whosaid["channel"] = message.channel.id
+    self.whosaid["second_chance"] = True
+    self.whosaid["author"] = message.author.name
     await channel.send("Who said: " + message.content)
 
 
-async def word_champion(channel):
+async def word_champion(self, channel):
     """
     A game where players guess who said a random word most frequently.
     """
-    bot.whosaid["playing"] = True
-    bot.whosaid["channel"] = channel.id
+    self.whosaid["playing"] = True
+    self.whosaid["channel"] = channel.id
 
     # Fetch a large number of messages
     messages = await channel.history(limit=1000).flatten()
@@ -208,7 +208,7 @@ async def word_champion(channel):
 
     if not common_words:
         await channel.send("Not enough data to play the game. Try chatting more!")
-        bot.whosaid["playing"] = False
+        self.whosaid["playing"] = False
         return
 
     # Choose a random word from common words
@@ -218,10 +218,10 @@ async def word_champion(channel):
     champion = max(word_counts.keys(), key=lambda author: word_counts[author][chosen_word])
     champion_count = word_counts[champion][chosen_word]
 
-    bot.whosaid["author"] = champion
-    bot.whosaid["message"] = f"Who said the word '{chosen_word}' the most?"
+    self.whosaid["author"] = champion
+    self.whosaid["message"] = f"Who said the word '{chosen_word}' the most?"
 
-    await channel.send(bot.whosaid["message"])
+    await channel.send(self.whosaid["message"])
 
 
 def main():
