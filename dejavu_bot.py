@@ -149,16 +149,16 @@ bot = DejavuBot()
 @app_commands.describe(
     choices="Choose the game or output format",
     rounds="Number of rounds to play for games (default: 5, max: 10)",
-    mercy="Enable Mercy for Adam mode (only for Who Said and Word Yapper)"
+    mercy_mode="Enable Mercy Mode (only for Who Said and Word Yapper)"
 )
 async def dejavu(
     inter: discord.Interaction, 
     choices: app_commands.Choice[str], 
     rounds: int = 5,
-    mercy: bool = False
+    mercy_mode: bool = False
 ):
     """Handle the /dejavu command."""
-    logger.debug(f"Dejavu command invoked with choice: {choices.value}, rounds: {rounds}, mercy: {mercy}")
+    logger.debug(f"Dejavu command invoked with choice: {choices.value}, rounds: {rounds}, mercy_mode: {mercy_mode}")
     
     if bot.whosaid["playing"] or bot.word_yapper["playing"]:
         await inter.response.send_message("A game is already in progress.")
@@ -172,17 +172,17 @@ async def dejavu(
         await inter.response.send_message("Number of rounds is only applicable for game modes.")
         return
     
-    if choices.value not in ["whosaid", "wordyapper"] and mercy:
-        await inter.response.send_message("Mercy mode is only available for Who Said and Word Yapper games.")
+    if choices.value not in ["whosaid", "wordyapper"] and mercy_mode:
+        await inter.response.send_message("Mercy Mode is only available for Who Said and Word Yapper games.")
         return
 
     await inter.response.defer()
 
     channel = inter.channel
     if choices.value == "wordyapper":
-        await start_word_yapper(channel, rounds, mercy)
+        await start_word_yapper(channel, rounds, mercy_mode)
     elif choices.value == "whosaid":
-        await start_whosaid(channel, rounds, mercy)
+        await start_whosaid(channel, rounds, mercy_mode)
     else:
         created_at = channel.created_at
         end = datetime.now(timezone.utc)
@@ -233,16 +233,16 @@ async def create_and_send_image(text: str, channel: discord.TextChannel):
     file = discord.File(buffer, filename="image.png")
     await channel.send(file=file)
 
-async def start_whosaid(channel: discord.TextChannel, rounds: int, mercy: bool):
+async def start_whosaid(channel: discord.TextChannel, rounds: int, mercy_mode: bool):
     """Start a 'Who said' game with multiple rounds."""
-    logger.debug(f"Starting 'Who said' game with {rounds} rounds, mercy mode: {mercy}")
+    logger.debug(f"Starting 'Who said' game with {rounds} rounds, Mercy Mode: {mercy_mode}")
     bot.whosaid.update({
         "playing": True,
         "channel": channel.id,
         "rounds": 0,
         "max_rounds": rounds,
         "scores": defaultdict(int),
-        "mercy": mercy
+        "mercy_mode": mercy_mode
     })
     await play_whosaid_round(channel)
 
@@ -254,7 +254,7 @@ async def play_whosaid_round(channel: discord.TextChannel):
     while True:
         rand_datetime = get_rand_datetime(created_at, end)
         async for rand_message in channel.history(limit=1, around=rand_datetime):
-            if rand_message.content and (not bot.whosaid["mercy"] or rand_message.author.id != 523214931533889598):
+            if rand_message.content and (not bot.whosaid["mercy_mode"] or rand_message.author.id != 523214931533889598):
                 bot.whosaid.update({
                     "author": rand_message.author.name,
                     "message": rand_message.content
@@ -310,9 +310,9 @@ async def end_whosaid_game(channel: discord.TextChannel):
     await show_leaderboard_after_game(channel)
     bot.whosaid["playing"] = False
 
-async def start_word_yapper(channel: discord.TextChannel, rounds: int, mercy: bool):
+async def start_word_yapper(channel: discord.TextChannel, rounds: int, mercy_mode: bool):
     """Start a Word Yapper game with multiple rounds."""
-    logger.debug(f"Starting Word Yapper game. Rounds: {rounds}, mercy mode: {mercy}")
+    logger.debug(f"Starting Word Yapper game. Rounds: {rounds}, Mercy Mode: {mercy_mode}")
     current_time = time.time()
     
     # Check if cache is valid
@@ -329,7 +329,7 @@ async def start_word_yapper(channel: discord.TextChannel, rounds: int, mercy: bo
         word_counts = defaultdict(lambda: defaultdict(int))
         message_count = 0
         async for message in channel.history(limit=10000):  # Adjust limit as needed
-            if message.author.bot or (mercy and message.author.id == 523214931533889598):
+            if message.author.bot or (mercy_mode and message.author.id == 523214931533889598):
                 continue
             words = re.findall(r'\w+', message.content.lower())
             for word in words:
@@ -352,7 +352,7 @@ async def start_word_yapper(channel: discord.TextChannel, rounds: int, mercy: bo
         "rounds": 0,
         "max_rounds": rounds,
         "scores": defaultdict(int),
-        "mercy": mercy,
+        "mercy_mode": mercy_mode,
         "used_words": set()
     })
 

@@ -24,7 +24,7 @@ Dejavu is a fun and interactive Discord bot that brings nostalgia and entertainm
     - `wordyapper`: Start a "Word Yapper" game.
   - Additional parameters:
     - `rounds`: Set the number of rounds for games (default: 5, max: 10).
-    - `mercy`: Enable Mercy mode for Adam (only for Who Said and Word Yapper).
+    - `mercy`: Enable Mercy mode for a certian someone (only for Who Said and Word Yapper).
 
 - `/leaderboard`: View the current leaderboard.
 
