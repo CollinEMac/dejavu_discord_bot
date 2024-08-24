@@ -23,78 +23,85 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up bot
-intents = discord.Intents.default()
-intents.message_content = True
-bot = discord.Client(intents=intents)
+class DejavuBot(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
+        self.whosaid = {
+            "playing": False,
+            "channel": None,
+            "author": None,
+            "message": None,
+            "second_chance": False
+        }
 
-# Set up slash commands
-tree = app_commands.CommandTree(bot)
+    async def setup_hook(self):
+        await self.tree.sync()
 
-# Colors for the image mode.
-VERY_DARK_COLORS = [
-    "black",
-    "darkblue",
-    "darkmagenta",
-    "darkslategrey",
-    "indigo",
-    "midnightblue",
-    "navy",
-    "purple",
-]
-
-# Initalize whosaid game variables
-bot.whosaid = {}
-bot.whosaid["playing"] = False
-bot.whosaid["channel"] = None
-bot.whosaid["author"] = None
-bot.whosaid["message"] = None
-bot.whosaid["second_chance"] = False
-
-# Command setup and argument definition.
-@tree.command(
-    name="dejavu",
-    description="Retrieve random messages or play guessing games",
-)
-@app_commands.choices(
-    choices=[
+    @app_commands.command(name="dejavu", description="Retrieve random messages or play guessing games")
+    @app_commands.choices(choices=[
         app_commands.Choice(name="Text message", value="text"),
         app_commands.Choice(name="Image message", value="image"),
         app_commands.Choice(name="Guess who said it", value="whosaid"),
         app_commands.Choice(name="Guess word champion", value="word_champion"),
-    ]
-)
-async def dejavu(inter, choices: app_commands.Choice[str]):
-    """
-    Retrieve a random message or play a guessing game based on the chosen option.
-    """
+    ])
+    async def dejavu(self, inter: discord.Interaction, choices: app_commands.Choice[str]):
+        """
+        Retrieve a random message or play a guessing game based on the chosen option.
+        """
 
-    # If a game of whosaid is already being played, do not continue.
-    if bot.whosaid["playing"] is True:
-        await inter.response.send_message("I'm still waiting for you to guess.")
-        return
+        # If a game of whosaid is already being played, do not continue.
+        if self.whosaid["playing"] is True:
+            await inter.response.send_message("I'm still waiting for you to guess.")
+            return
 
-    # Send a message to confirm recipt of command.
-    # Else the bot will error.
-    # TODO: Find a way to run a command without
-    # something like this
-    await inter.response.send_message("Command sent.")
+        # Send a message to confirm recipt of command.
+        # Else the bot will error.
+        # TODO: Find a way to run a command without
+        # something like this
+        await inter.response.send_message("Command sent.")
 
-    # Get a random datetime between now and when the channel was created
-    channel = inter.channel
-    created_at = channel.created_at
-    end = datetime.utcnow().replace(tzinfo=timezone.utc)
-    rand_datetime = get_rand_datetime(created_at, end)
+        # Get a random datetime between now and when the channel was created
+        channel = inter.channel
+        created_at = channel.created_at
+        end = datetime.utcnow().replace(tzinfo=timezone.utc)
+        rand_datetime = get_rand_datetime(created_at, end)
 
-    # Fetch a message using the random datetime
-    # limit=1 so we only get one message (we could change this later to add more?)
-    async for rand_message in channel.history(limit=1, around=rand_datetime):
-        if rand_message.content != "":
-            if choices.value == "word_champion":
-                await word_champion(channel)
+        # Fetch a message using the random datetime
+        # limit=1 so we only get one message (we could change this later to add more?)
+        async for rand_message in channel.history(limit=1, around=rand_datetime):
+            if rand_message.content != "":
+                if choices.value == "word_champion":
+                    await word_champion(channel)
+                else:
+                    await create_and_send_response(rand_message, channel, choices.value)
+                break
+
+    async def on_message(self, message: discord.Message):
+        """
+        Check if the ID in the response matches the
+        ID of the user whose message got fetched by
+        the whosaid game and make sure we're in the
+        channel the game started in.
+
+        Then, the game logic runs.
+        """
+
+        if message.author.bot or self.whosaid["channel"] != message.channel.id:
+            return
+
+        if self.whosaid["playing"] and len(message.mentions) > 0:
+            guessed_user = message.mentions[0].name
+            correct_user = self.whosaid["author"]
+
+            if guessed_user == correct_user:
+                await message.reply(f"Correct! {correct_user} said the word the most.")
             else:
-                await create_and_send_response(rand_message, channel, choices.value)
-            break
+                await message.reply(f"Wrong! The correct answer was {correct_user}.")
+
+            self.whosaid["playing"] = False
 
 
 def get_rand_datetime(start, end):
@@ -217,40 +224,10 @@ async def word_champion(channel):
     await channel.send(bot.whosaid["message"])
 
 
-@bot.event
-async def on_message(message):
-    """
-    Check if the ID in the response matches the
-    ID of the user whose message got fetched by
-    the whosaid game and make sure we're in the
-    channel the game started in.
+def main():
+    load_dotenv()
+    bot = DejavuBot()
+    bot.run(os.environ.get("DISCORD_TOKEN"))
 
-    Then, the game logic runs.
-    """
-
-    if message.author.bot or bot.whosaid["channel"] != message.channel.id:
-        return
-
-    if bot.whosaid["playing"] and len(message.mentions) > 0:
-        guessed_user = message.mentions[0].name
-        correct_user = bot.whosaid["author"]
-
-        if guessed_user == correct_user:
-            await message.reply(f"Correct! {correct_user} said the word the most.")
-        else:
-            await message.reply(f"Wrong! The correct answer was {correct_user}.")
-
-        bot.whosaid["playing"] = False
-
-
-# Sync slash command to Discord.
-@bot.event
-async def on_ready():
-    """
-    on_ready() syncs and updates the slash commands on the Discord server.
-    """
-    await tree.sync()
-
-
-# Run bot and load the Discord bot token from a `.env` file.
-bot.run(os.environ.get("DISCORD_TOKEN"))
+if __name__ == "__main__":
+    main()
