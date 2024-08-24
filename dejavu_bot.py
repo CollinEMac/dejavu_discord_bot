@@ -175,6 +175,7 @@ class DejavuBot(discord.Client):
     async def word_champion(self, channel):
         """
         A game where players guess who said a random word most frequently.
+        /dejavu word_champion
         """
         self.whosaid["playing"] = True
         self.whosaid["channel"] = channel.id

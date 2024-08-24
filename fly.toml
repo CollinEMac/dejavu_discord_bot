@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for dejavu-discord-bot on 2024-05-19T06:30:30-05:00
+# fly.toml app configuration file generated for dejavu-discord-bot-hidden-moon-1700 on 2024-08-24T00:50:10-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'dejavu-discord-bot'
+app = 'dejavu-discord-bot-hidden-moon-1700'
 primary_region = 'ord'
 
 [build]
@@ -11,7 +11,7 @@ primary_region = 'ord'
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = false
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
   processes = ['app']
