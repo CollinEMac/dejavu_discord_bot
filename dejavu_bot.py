@@ -182,7 +182,6 @@ async def word_champion(channel):
     """
     bot.whosaid["playing"] = True
     bot.whosaid["channel"] = channel.id
-    bot.whosaid["second_chance"] = True
 
     # Fetch a large number of messages
     messages = await channel.history(limit=1000).flatten()
@@ -213,7 +212,7 @@ async def word_champion(channel):
     champion_count = word_counts[champion][chosen_word]
 
     bot.whosaid["author"] = champion
-    bot.whosaid["message"] = f"Who said the word '{chosen_word}' most frequently? They said it {champion_count} times!"
+    bot.whosaid["message"] = f"Who said the word '{chosen_word}' the most?"
 
     await channel.send(bot.whosaid["message"])
 
@@ -229,27 +228,19 @@ async def on_message(message):
     Then, the game logic runs.
     """
 
-    if message.author.bot == True or bot.whosaid["channel"] != message.channel.id:
+    if message.author.bot or bot.whosaid["channel"] != message.channel.id:
         return
 
-    # This if statement only returns true if whosaid() has run before this
-    if (
-        len(message.mentions) > 0
-        and message.mentions[0].name == bot.whosaid["author"]
-        and bot.whosaid["playing"] is True
-    ):
-        await message.reply("Correct.")
+    if bot.whosaid["playing"] and len(message.mentions) > 0:
+        guessed_user = message.mentions[0].name
+        correct_user = bot.whosaid["author"]
+
+        if guessed_user == correct_user:
+            await message.reply(f"Correct! {correct_user} said the word the most.")
+        else:
+            await message.reply(f"Wrong! The correct answer was {correct_user}.")
+
         bot.whosaid["playing"] = False
-        bot.whosaid["second_chance"] = True
-    elif bot.whosaid["playing"] is True and bot.whosaid["second_chance"] is True:
-        await message.reply("Wrong! I'll give you one more chance.")
-        bot.whosaid["second_chance"] = False
-    elif bot.whosaid["playing"] is True and bot.whosaid["second_chance"] is False:
-        await message.reply(
-            "Wrong again! It was " + bot.whosaid["author"] + "! Game over!."
-        )
-        bot.whosaid["playing"] = False
-        bot.whosaid["second_chance"] = True
 
 
 # Sync slash command to Discord.
