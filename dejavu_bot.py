@@ -54,27 +54,19 @@ bot.whosaid["second_chance"] = False
 # Command setup and argument definition.
 @tree.command(
     name="dejavu",
-    description="Devjavu bot",
+    description="Retrieve random messages or play guessing games",
 )
 @app_commands.choices(
     choices=[
-        app_commands.Choice(name="Retrieve a random message.", value="text"),
-        app_commands.Choice(
-            name="Retrieve a random message and put it in an image.", value="image"
-        ),
-        app_commands.Choice(
-            name="Retrieve a random message and you must guess who said it by mentioning them.",
-            value="whosaid",
-        ),
-        app_commands.Choice(
-            name="Guess who said a random word the most frequently.",
-            value="word_champion",
-        ),
+        app_commands.Choice(name="Text message", value="text"),
+        app_commands.Choice(name="Image message", value="image"),
+        app_commands.Choice(name="Guess who said it", value="whosaid"),
+        app_commands.Choice(name="Guess word champion", value="word_champion"),
     ]
 )
 async def dejavu(inter, choices: app_commands.Choice[str]):
     """
-    On `/dejavu text|image|whosaid|word_champion` grab a random message and post it in the chosen format.
+    Retrieve a random message or play a guessing game based on the chosen option.
     """
 
     # If a game of whosaid is already being played, do not continue.
