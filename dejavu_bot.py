@@ -4,13 +4,14 @@ your channel history and send it in either text or image format and there is als
 a game where you have to guess who said the message
 
 Invoke with `/dejavu`
-Arguments: text, image, whosaid
+Arguments: text, image, whosaid, word_champion
 """
 
 import os
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from random import choice, randrange
+from collections import Counter
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
@@ -65,11 +66,15 @@ bot.whosaid["second_chance"] = False
             name="Retrieve a random message and you must guess who said it by mentioning them.",
             value="whosaid",
         ),
+        app_commands.Choice(
+            name="Guess who said a random word the most frequently.",
+            value="word_champion",
+        ),
     ]
 )
 async def dejavu(inter, choices: app_commands.Choice[str]):
     """
-    On `/dejavu text|image|whosaid` grab a random message and post it in the chosen format.
+    On `/dejavu text|image|whosaid|word_champion` grab a random message and post it in the chosen format.
     """
 
     # If a game of whosaid is already being played, do not continue.
@@ -93,7 +98,10 @@ async def dejavu(inter, choices: app_commands.Choice[str]):
     # limit=1 so we only get one message (we could change this later to add more?)
     async for rand_message in channel.history(limit=1, around=rand_datetime):
         if rand_message.content != "":
-            await create_and_send_response(rand_message, channel, choices.value)
+            if choices.value == "word_champion":
+                await word_champion(channel)
+            else:
+                await create_and_send_response(rand_message, channel, choices.value)
             break
 
 
@@ -174,6 +182,48 @@ async def whosaid(message, channel):
     bot.whosaid["second_chance"] = True
     bot.whosaid["author"] = message.author.name
     await channel.send("Who said: " + message.content)
+
+
+async def word_champion(channel):
+    """
+    A game where players guess who said a random word most frequently.
+    """
+    bot.whosaid["playing"] = True
+    bot.whosaid["channel"] = channel.id
+    bot.whosaid["second_chance"] = True
+
+    # Fetch a large number of messages
+    messages = await channel.history(limit=1000).flatten()
+
+    # Count words for each author
+    word_counts = {}
+    for message in messages:
+        author = message.author.name
+        if author not in word_counts:
+            word_counts[author] = Counter()
+        word_counts[author].update(message.content.lower().split())
+
+    # Find words that appear more than once
+    common_words = set()
+    for author_counts in word_counts.values():
+        common_words.update(word for word, count in author_counts.items() if count > 1)
+
+    if not common_words:
+        await channel.send("Not enough data to play the game. Try chatting more!")
+        bot.whosaid["playing"] = False
+        return
+
+    # Choose a random word from common words
+    chosen_word = choice(list(common_words))
+
+    # Find the author who said it most
+    champion = max(word_counts.keys(), key=lambda author: word_counts[author][chosen_word])
+    champion_count = word_counts[champion][chosen_word]
+
+    bot.whosaid["author"] = champion
+    bot.whosaid["message"] = f"Who said the word '{chosen_word}' most frequently? They said it {champion_count} times!"
+
+    await channel.send(bot.whosaid["message"])
 
 
 @bot.event
