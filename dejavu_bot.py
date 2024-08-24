@@ -19,7 +19,8 @@ import json
 import enchant
 import asyncio
 
-from PIL import Image, ImageColor, ImageDraw, ImageFont
+from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
+import textwrap
 
 from dotenv import load_dotenv
 
@@ -141,61 +142,111 @@ class DejavuBot(discord.Client):
 
 bot = DejavuBot()
 
-@bot.tree.command(name="dejavu", description="Find random messages from channel history or play games")
-@app_commands.choices(choices=[
-    app_commands.Choice(name="Text", value="text"),
-    app_commands.Choice(name="Image", value="image"),
-    app_commands.Choice(name="Guess who", value="whosaid"),
-    app_commands.Choice(name="Word Yapper", value="wordyapper"),
-])
+dejavu = app_commands.Group(name="dejavu", description="Dejavu commands and games")
+
+@dejavu.command(name="text", description="Get a random message as text")
+async def dejavu_text(inter: discord.Interaction):
+    """Handle the /dejavu text command."""
+    logger.debug("Dejavu text command invoked")
+    await inter.response.defer()
+    await process_dejavu_command(inter, "text")
+
+@dejavu.command(name="image", description="Get a random message as an image")
+@app_commands.describe(background="Choose the background image (default: iphone)")
+async def dejavu_image(
+    inter: discord.Interaction,
+    background: Literal["japmic", "iphone"] = "iphone"
+):
+    """Handle the /dejavu image command."""
+    logger.debug(f"Dejavu image command invoked with background: {background}")
+    await inter.response.defer()
+    await process_dejavu_command(inter, "image", background)
+
+@dejavu.command(name="whosaid", description="Play 'Who Said' game")
 @app_commands.describe(
-    choices="Choose the game or output format",
-    rounds="Number of rounds to play for games (default: 5, max: 10)",
-    mercy_mode="Enable Mercy Mode (only for Who Said and Word Yapper)"
+    rounds="Number of rounds to play (default: 5, max: 10)",
+    mercy_mode="Enable Mercy Mode"
 )
-async def dejavu(
+async def whosaid(
     inter: discord.Interaction, 
-    choices: app_commands.Choice[str], 
     rounds: int = 5,
     mercy_mode: bool = False
 ):
-    """Handle the /dejavu command."""
-    logger.debug(f"Dejavu command invoked with choice: {choices.value}, rounds: {rounds}, mercy_mode: {mercy_mode}")
+    """Handle the /dejavu whosaid command."""
+    logger.debug(f"Who Said game invoked with rounds: {rounds}, mercy_mode: {mercy_mode}")
     
     if bot.whosaid["playing"] or bot.word_yapper["playing"]:
         await inter.response.send_message("A game is already in progress.")
         return
 
-    if choices.value in ["whosaid", "wordyapper"]:
-        if rounds < 1 or rounds > 10:
-            await inter.response.send_message("Number of rounds must be between 1 and 10.")
-            return
-    elif rounds != 5:
-        await inter.response.send_message("Number of rounds is only applicable for game modes.")
-        return
-    
-    if choices.value not in ["whosaid", "wordyapper"] and mercy_mode:
-        await inter.response.send_message("Mercy Mode is only available for Who Said and Word Yapper games.")
+    if rounds < 1 or rounds > 10:
+        await inter.response.send_message("Number of rounds must be between 1 and 10.")
         return
 
     await inter.response.defer()
+    await start_whosaid(inter.channel, rounds, mercy_mode)
+    await inter.followup.send("Who Said game started.")
 
+@dejavu.command(name="wordyapper", description="Play 'Word Yapper' game")
+@app_commands.describe(
+    rounds="Number of rounds to play (default: 5, max: 10)",
+    mercy_mode="Enable Mercy Mode"
+)
+async def wordyapper(
+    inter: discord.Interaction, 
+    rounds: int = 5,
+    mercy_mode: bool = False
+):
+    """Handle the /dejavu wordyapper command."""
+    logger.debug(f"Word Yapper game invoked with rounds: {rounds}, mercy_mode: {mercy_mode}")
+    
+    if bot.whosaid["playing"] or bot.word_yapper["playing"]:
+        await inter.response.send_message("A game is already in progress.")
+        return
+
+    if rounds < 1 or rounds > 10:
+        await inter.response.send_message("Number of rounds must be between 1 and 10.")
+        return
+
+    await inter.response.defer()
+    await start_word_yapper(inter.channel, rounds, mercy_mode)
+    await inter.followup.send("Word Yapper game started.")
+
+bot.tree.add_command(dejavu)
+
+async def process_dejavu_command(inter: discord.Interaction, format: Literal["text", "image"], background: str = "japmic"):
+    """Process the dejavu command for text and image formats."""
+    logger.debug(f"Processing dejavu command. Format: {format}, Background: {background}")
     channel = inter.channel
-    if choices.value == "wordyapper":
-        await start_word_yapper(channel, rounds, mercy_mode)
-    elif choices.value == "whosaid":
-        await start_whosaid(channel, rounds, mercy_mode)
-    else:
-        created_at = channel.created_at
-        end = datetime.now(timezone.utc)
+    created_at = channel.created_at
+    end = datetime.now(timezone.utc)
+    
+    try:
+        logger.debug(f"Channel created at: {created_at}, Current time: {end}")
         rand_datetime = get_rand_datetime(created_at, end)
+        logger.debug(f"Random datetime generated: {rand_datetime}")
 
+        message_found = False
         async for rand_message in channel.history(limit=1, around=rand_datetime):
             if rand_message.content:
-                await create_and_send_response(rand_message, channel, choices.value)
+                logger.debug(f"Random message found: {rand_message.content[:20]}...")  # Log first 20 chars
+                await create_and_send_response(rand_message, channel, format, background)
+                message_found = True
                 break
+        
+        if not message_found:
+            logger.warning("No suitable message found in channel history")
+            await inter.followup.send("No suitable message found. Please try again.")
+        else:
+            await inter.followup.send("Command processed successfully.")
+    except discord.errors.Forbidden:
+        logger.error("Bot doesn't have permission to read message history")
+        await inter.followup.send("I don't have permission to read message history in this channel.")
+    except Exception as e:
+        logger.error(f"Error processing dejavu command: {str(e)}")
+        await inter.followup.send("An error occurred while processing the command. Please try again later.")
 
-    await inter.followup.send("Command processed.")
+    logger.debug("Dejavu command processing completed")
 
 def get_rand_datetime(start: datetime, end: datetime) -> datetime:
     """Return a random datetime between two datetime objects."""
@@ -205,35 +256,121 @@ def get_rand_datetime(start: datetime, end: datetime) -> datetime:
     random_second = randrange(int_delta)
     return start + timedelta(seconds=random_second)
 
-async def create_and_send_response(rand_message: discord.Message, channel: discord.TextChannel, choice: Literal["text", "image"]):
+async def create_and_send_response(rand_message: discord.Message, channel: discord.TextChannel, choice: Literal["text", "image"], background: str):
     """Create and send the appropriate response based on the user's choice."""
-    logger.debug(f"Creating response for choice: {choice}")
+    logger.debug(f"Creating response for choice: {choice}, background: {background}")
     text = f"{rand_message.author.name} said: \n{rand_message.content}\nat {rand_message.created_at.strftime('%Y-%m-%d %I:%M %p')}"
 
-    if choice == "text":
-        await channel.send(text)
-    elif choice == "image":
-        await create_and_send_image(text, channel)
-    else:
-        await channel.send("Invalid Command.")
+    try:
+        if choice == "text":
+            logger.debug("Sending text response")
+            await channel.send(text)
+        elif choice == "image":
+            logger.debug("Creating and sending image response")
+            await create_and_send_image(text, channel, background)
+        else:
+            logger.warning(f"Invalid choice: {choice}")
+            await channel.send("Invalid Command.")
+    except Exception as e:
+        logger.error(f"Error in create_and_send_response: {str(e)}")
+        await channel.send("An error occurred while creating the response.")
 
-async def create_and_send_image(text: str, channel: discord.TextChannel):
-    """Create and send an image with the message text."""
-    logger.debug("Creating and sending image")
-    font = ImageFont.truetype("./fonts/Courier.ttf", size=14)
-    rand_color = choice(list(ImageColor.colormap.keys()))
-    img = Image.new('RGB', (1000, 100), color=rand_color)
-    img_draw = ImageDraw.Draw(img)
+    logger.debug("Response sent successfully")
 
-    text_color = (0, 0, 0) if rand_color not in VERY_DARK_COLORS else (255, 255, 255)
-    img_draw.text((0, 25), text, font=font, fill=text_color)
-
-    buffer = BytesIO()
-    img.save(buffer, "png")
-    buffer.seek(0)
-
-    file = discord.File(buffer, filename="image.png")
-    await channel.send(file=file)
+async def create_and_send_image(text: str, channel: discord.TextChannel, background: str):
+    """Create and send an image with the message text overlaid on the selected background."""
+    logger.debug(f"Creating image with text: {text[:20]}..., background: {background}")
+    
+    try:
+        # Load the background image
+        background_path = f"assets/images/{background}.jpg"
+        logger.debug(f"Loading background image from: {background_path}")
+        background_img = Image.open(background_path)
+        width, height = background_img.size
+        
+        # Create a drawing object
+        draw = ImageDraw.Draw(background_img)
+        
+        # Load fonts
+        font_large = ImageFont.truetype("./assets/fonts/Courier.ttf", size=36)
+        font_small = ImageFont.truetype("./assets/fonts/Courier.ttf", size=24)
+        
+        # Split the text
+        parts = text.split("\n")
+        author = parts[0]
+        message = parts[1]
+        timestamp = parts[2]
+        
+        # Wrap the message text
+        wrapped_message = textwrap.fill(message, width=40)
+        
+        # Set colors and alignment based on background
+        text_color = (255, 255, 255)  # White for both backgrounds
+        if background == "iphone":
+            shadow_color = (0, 0, 0)  # Black shadow for iphone
+            alignment = "center"
+        else:  # japmic
+            shadow_color = None  # No shadow for japmic
+            alignment = "top"
+        
+        # Calculate total text height
+        author_bbox = draw.textbbox((0, 0), author, font=font_large)
+        author_height = author_bbox[3] - author_bbox[1]
+        
+        message_lines = wrapped_message.split('\n')
+        message_height = sum(draw.textbbox((0, 0), line, font=font_small)[3] - draw.textbbox((0, 0), line, font=font_small)[1] for line in message_lines)
+        
+        timestamp_bbox = draw.textbbox((0, 0), timestamp, font=font_small)
+        timestamp_height = timestamp_bbox[3] - timestamp_bbox[1]
+        
+        total_height = author_height + message_height + timestamp_height + 40  # 40 for padding
+        
+        # Set starting y position based on alignment
+        if alignment == "center":
+            start_y = (height - total_height) // 2
+        else:  # top
+            start_y = 20
+        
+        # Draw text with optional shadow effect
+        def draw_text_with_shadow(position, text, font, shadow_color, text_color):
+            if shadow_color:
+                # Draw shadow
+                shadow_offset = 2
+                for offset in [(0, 0), (0, shadow_offset), (shadow_offset, 0), (shadow_offset, shadow_offset)]:
+                    draw.text((position[0]+offset[0], position[1]+offset[1]), text, font=font, fill=shadow_color)
+            # Draw main text
+            draw.text(position, text, font=font, fill=text_color)
+        
+        # Draw author
+        author_bbox = draw.textbbox((0, 0), author, font=font_large)
+        author_width = author_bbox[2] - author_bbox[0]
+        author_position = ((width - author_width) // 2, start_y)
+        draw_text_with_shadow(author_position, author, font_large, shadow_color, text_color)
+        
+        # Draw message
+        current_y = start_y + author_height + 20  # 20 for padding
+        for line in message_lines:
+            line_bbox = draw.textbbox((0, 0), line, font=font_small)
+            line_width = line_bbox[2] - line_bbox[0]
+            line_position = ((width - line_width) // 2, current_y)
+            draw_text_with_shadow(line_position, line, font_small, shadow_color, text_color)
+            current_y += line_bbox[3] - line_bbox[1]
+        
+        # Draw timestamp
+        timestamp_width = timestamp_bbox[2] - timestamp_bbox[0]
+        timestamp_position = ((width - timestamp_width) // 2, current_y + 20)  # 20 for padding
+        draw_text_with_shadow(timestamp_position, timestamp, font_small, shadow_color, text_color)
+        
+        # Save and send the image
+        buffer = BytesIO()
+        background_img.save(buffer, "PNG")
+        buffer.seek(0)
+        
+        file = discord.File(buffer, filename=f"dejavu_message_{background}.png")
+        await channel.send(file=file)
+    except Exception as e:
+        logger.error(f"Error creating image: {str(e)}")
+        await channel.send("An error occurred while creating the image.")
 
 async def start_whosaid(channel: discord.TextChannel, rounds: int, mercy_mode: bool):
     """Start a 'Who said' game with multiple rounds."""
@@ -275,12 +412,17 @@ async def play_whosaid_round(channel: discord.TextChannel):
 
 async def wait_for_correct_answer(channel: discord.TextChannel):
     while True:
-        message = await bot.wait_for('message', check=lambda m: m.channel == channel and not m.author.bot and m.mentions)
-        if message.mentions[0].name == bot.whosaid["author"]:
-            await process_whosaid_guess(message)
+        try:
+            message = await bot.wait_for('message', check=lambda m: m.channel == channel and not m.author.bot and m.mentions, timeout=60.0)
+            if message.mentions[0].name == bot.whosaid["author"]:
+                await process_whosaid_guess(message)
+                break
+            else:
+                await message.reply("Wrong! Try again.")
+        except asyncio.TimeoutError:
+            await channel.send("No one answered in time. Game aborted.")
+            await end_whosaid_game(channel)
             break
-        else:
-            await message.reply("Wrong! Try again.")
 
 async def process_whosaid_guess(message: discord.Message):
     """Process a guess for the 'Who said' game."""
@@ -415,12 +557,17 @@ async def play_word_yapper_round(channel: discord.TextChannel, word_counts, mess
 
 async def wait_for_correct_word_yapper_answer(channel: discord.TextChannel):
     while True:
-        message = await bot.wait_for('message', check=lambda m: m.channel == channel and not m.author.bot and m.mentions)
-        if message.mentions[0].name == bot.word_yapper["top_user"]:
-            await process_word_yapper_guess(message)
+        try:
+            message = await bot.wait_for('message', check=lambda m: m.channel == channel and not m.author.bot and m.mentions, timeout=60.0)
+            if message.mentions[0].name == bot.word_yapper["top_user"]:
+                await process_word_yapper_guess(message)
+                break
+            else:
+                await message.reply("Wrong! Try again.")
+        except asyncio.TimeoutError:
+            await channel.send("No one answered in time. Game aborted.")
+            await end_word_yapper_game(channel)
             break
-        else:
-            await message.reply("Wrong! Try again.")
 
 async def process_word_yapper_guess(message: discord.Message):
     """Process a guess for the Word Yapper game."""
@@ -488,17 +635,6 @@ async def on_message(message: discord.Message):
         return
 
     logger.debug(f"Processing mention: {message.content[:20]}...")  # Log first 20 chars of message
-
-    if bot.whosaid["playing"] and bot.whosaid["channel"] == message.channel.id:
-        if message.mentions[0].name == bot.whosaid["author"]:
-            await process_whosaid_guess(message)
-        else:
-            await message.reply("Wrong! Try again.")
-    elif bot.word_yapper["playing"] and bot.word_yapper["channel"] == message.channel.id:
-        if message.mentions[0].name == bot.word_yapper["top_user"]:
-            await process_word_yapper_guess(message)
-        else:
-            await message.reply("Wrong! Try again.")
 
 @bot.event
 async def on_ready():
