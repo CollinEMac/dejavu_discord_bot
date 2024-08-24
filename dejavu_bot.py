@@ -57,6 +57,8 @@ logger = logging.getLogger('dejavu_bot')
 LEADERBOARD_FILE = "leaderboard.json"
 STREAK_BONUS = 1  # Points awarded for maintaining a streak
 
+MERCY_USER_ID = int(os.environ.get("MERCY_USER_ID", 0))
+
 class DejavuBot(discord.Client):
     def __init__(self):
         logger.debug("Initializing DejavuBot")
@@ -254,7 +256,7 @@ async def play_whosaid_round(channel: discord.TextChannel):
     while True:
         rand_datetime = get_rand_datetime(created_at, end)
         async for rand_message in channel.history(limit=1, around=rand_datetime):
-            if rand_message.content and (not bot.whosaid["mercy_mode"] or rand_message.author.id != 523214931533889598):
+            if rand_message.content and (not bot.whosaid["mercy_mode"] or rand_message.author.id != MERCY_USER_ID):
                 bot.whosaid.update({
                     "author": rand_message.author.name,
                     "message": rand_message.content
@@ -329,7 +331,7 @@ async def start_word_yapper(channel: discord.TextChannel, rounds: int, mercy_mod
         word_counts = defaultdict(lambda: defaultdict(int))
         message_count = 0
         async for message in channel.history(limit=10000):  # Adjust limit as needed
-            if message.author.bot or (mercy_mode and message.author.id == 523214931533889598):
+            if message.author.bot or (mercy_mode and message.author.id == MERCY_USER_ID):
                 continue
             words = re.findall(r'\w+', message.content.lower())
             for word in words:
