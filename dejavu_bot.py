@@ -43,11 +43,11 @@ class DejavuBot(discord.Client):
 
 bot = DejavuBot()
 
-@bot.tree.command(name="dejavu", description="Dejavu bot")
+@bot.tree.command(name="dejavu", description="Find random messages from channel history")
 @app_commands.choices(choices=[
-    app_commands.Choice(name="Retrieve a random message.", value="text"),
-    app_commands.Choice(name="Retrieve a random message and put it in an image.", value="image"),
-    app_commands.Choice(name="Retrieve a random message and guess who said it.", value="whosaid"),
+    app_commands.Choice(name="Text", value="text"),
+    app_commands.Choice(name="Image", value="image"),
+    app_commands.Choice(name="Guess who", value="whosaid"),
 ])
 async def dejavu(inter: discord.Interaction, choices: app_commands.Choice[str]):
     """Handle the /dejavu command."""
