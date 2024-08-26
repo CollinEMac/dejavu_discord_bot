@@ -156,12 +156,22 @@ async def dejavu_text(inter: discord.Interaction):
 async def dejavu_image(
     inter: discord.Interaction,
     background: Literal[
+        "babeplease",
+        "chad",
+        "criticalallowbrain",
+        "furry",
+        "girls",
+        "guyatparty",
         "japmic",
         "iphone",
         "nerd",
+        "nobitches",
+        "npc",
         "receives",
-        "guyatparty",
-        "soyface"
+        "shutup",
+        "simp",
+        "smolbrain",
+        "yap"
     ] = "iphone"
 ):
     """Handle the /dejavu image command."""
