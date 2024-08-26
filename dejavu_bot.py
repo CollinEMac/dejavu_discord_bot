@@ -155,7 +155,14 @@ async def dejavu_text(inter: discord.Interaction):
 @app_commands.describe(background="Choose the background image (default: iphone)")
 async def dejavu_image(
     inter: discord.Interaction,
-    background: Literal["japmic", "iphone"] = "iphone"
+    background: Literal[
+        "japmic",
+        "iphone",
+        "nerd",
+        "receives",
+        "guyatparty",
+        "soyface"
+    ] = "iphone"
 ):
     """Handle the /dejavu image command."""
     logger.debug(f"Dejavu image command invoked with background: {background}")
@@ -309,7 +316,7 @@ async def create_and_send_image(text: str, channel: discord.TextChannel, backgro
         if background == "iphone":
             shadow_color = (0, 0, 0)  # Black shadow for iphone
             alignment = "center"
-        else:  # japmic
+        else:
             shadow_color = None  # No shadow for japmic
             alignment = "top"
         
