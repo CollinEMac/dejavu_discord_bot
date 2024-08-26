@@ -158,7 +158,7 @@ async def dejavu_image(
     background: Literal[
         "babeplease",
         "chad",
-        "criticalallowbrain",
+        "criticallowbrain",
         "furry",
         "girls",
         "guyatparty",
