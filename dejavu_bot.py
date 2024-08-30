@@ -60,6 +60,8 @@ STREAK_BONUS = 1  # Points awarded for maintaining a streak
 
 MERCY_USER_ID = int(os.environ.get("MERCY_USER_ID", 0))
 
+MAX_RETRIES = 3
+
 class DejavuBot(discord.Client):
     def __init__(self):
         logger.debug("Initializing DejavuBot")
@@ -239,16 +241,19 @@ async def process_dejavu_command(inter: discord.Interaction, format: Literal["te
     end = datetime.now(timezone.utc)
     
     try:
-        logger.debug(f"Channel created at: {created_at}, Current time: {end}")
-        rand_datetime = get_rand_datetime(created_at, end)
-        logger.debug(f"Random datetime generated: {rand_datetime}")
-
-        message_found = False
-        async for rand_message in channel.history(limit=1, around=rand_datetime):
-            if rand_message.content:
-                logger.debug(f"Random message found: {rand_message.content[:20]}...")  # Log first 20 chars
-                await create_and_send_response(rand_message, channel, format, background)
-                message_found = True
+        for _ in range(MAX_RETRIES):
+            logger.debug(f"Channel created at: {created_at}, Current time: {end}")
+            rand_datetime = get_rand_datetime(created_at, end)
+            logger.debug(f"Random datetime generated: {rand_datetime}")
+    
+            message_found = False
+            async for rand_message in channel.history(limit=5, around=rand_datetime):
+                if rand_message.content:
+                    logger.debug(f"Random message found: {rand_message.content[:20]}...")  # Log first 20 chars
+                    await create_and_send_response(rand_message, channel, format, background)
+                    message_found = True
+                    break
+            if message_found:
                 break
         
         if not message_found:
