@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from random import choice, randrange
-from typing import Literal
+from typing import List, Literal
 import re
 from collections import defaultdict
 import time
@@ -30,6 +30,26 @@ load_dotenv()
 ###
 ### Constants
 ###
+
+BACKGROUNDS = Literal[
+        "babeplease",
+        "chad",
+        "criticallowbrain",
+        "furry",
+        "girls",
+        "guyatparty",
+        "japmic",
+        "iphone",
+        "nerd",
+        "nobitches",
+        "npc",
+        "random",
+        "receives",
+        "shutup",
+        "simp",
+        "smolbrain",
+        "yap"
+]
 
 VERY_DARK_COLORS = [
     "black", "darkblue", "darkmagenta", "darkslategrey",
@@ -167,24 +187,7 @@ async def dejavu_text(inter: discord.Interaction):
 @app_commands.describe(background="Choose the background image (default: iphone)")
 async def dejavu_image(
     inter: discord.Interaction,
-    background: Literal[
-        "babeplease",
-        "chad",
-        "criticallowbrain",
-        "furry",
-        "girls",
-        "guyatparty",
-        "japmic",
-        "iphone",
-        "nerd",
-        "nobitches",
-        "npc",
-        "receives",
-        "shutup",
-        "simp",
-        "smolbrain",
-        "yap"
-    ] = "iphone"
+    background: List[str]
 ):
     """Handle the /dejavu image command."""
     logger.debug(f"Dejavu image command invoked with background: {background}")
@@ -321,7 +324,12 @@ async def create_and_send_image(text: str, channel: discord.TextChannel, backgro
     """Create and send an image with the message text overlaid on the selected background."""
     logger.debug(f"Creating image with text: {text[:20]}..., background: {background}")
     
+    RANDOM = 'random'
+
     try:
+        if background == RANDOM:
+            background = choice([bg for bg in BACKGROUNDS if bg != RANDOM])
+
         # Load the background image
         background_path = f"assets/images/{background}.jpg"
         logger.debug(f"Loading background image from: {background_path}")
