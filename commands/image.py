@@ -13,20 +13,24 @@ logger = logging.getLogger('dejavu_bot')
 BACKGROUNDS = [
         "babeplease",
         "chad",
+        "conspiracy",
         "criticallowbrain",
         "furry",
         "girls",
+        "guyatclub"
         "guyatparty",
-        "japmic",
         "iphone",
+        "japmic",
         "nerd",
         "nobitches",
         "npc",
+        "owned",
         "random",
         "receives",
         "shutup",
         "simp",
         "smolbrain",
+        "whiteboard",
         "yap"
 ]
 
