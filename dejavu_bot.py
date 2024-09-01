@@ -8,7 +8,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from random import choice, randrange
-from typing import List, Literal
+from typing import Literal
 import re
 from collections import defaultdict
 import time
@@ -31,7 +31,7 @@ load_dotenv()
 ### Constants
 ###
 
-BACKGROUNDS = Literal[
+BACKGROUNDS = [
         "babeplease",
         "chad",
         "criticallowbrain",
@@ -185,9 +185,12 @@ async def dejavu_text(inter: discord.Interaction):
 
 @dejavu.command(name="image", description="Get a random message as an image")
 @app_commands.describe(background="Choose the background image (default: iphone)")
+@app_commands.choices(background=[
+    app_commands.Choice(name=choice, value=choice) for choice in BACKGROUNDS
+])
 async def dejavu_image(
     inter: discord.Interaction,
-    background: List[str]
+    background: str
 ):
     """Handle the /dejavu image command."""
     logger.debug(f"Dejavu image command invoked with background: {background}")
