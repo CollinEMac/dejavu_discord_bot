@@ -10,7 +10,7 @@ from io import BytesIO
 from random import choice, randrange
 from typing import Literal
 import re
-from collections import defaultdict, Counter
+from collections import defaultdict
 import time
 import discord
 from discord import app_commands, Embed
@@ -19,7 +19,7 @@ import json
 import enchant
 import asyncio
 
-from PIL import Image, ImageColor, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont
 import textwrap
 
 from dotenv import load_dotenv
