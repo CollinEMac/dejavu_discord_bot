@@ -17,7 +17,7 @@ BACKGROUNDS = [
         "criticallowbrain",
         "furry",
         "girls",
-        "guyatclub"
+        "guyatclub",
         "guyatparty",
         "iphone",
         "japmic",
@@ -64,8 +64,8 @@ async def create_and_send_image(text: str, channel: discord.TextChannel, backgro
         draw = ImageDraw.Draw(background_img)
         
         # Load fonts
-        font_large = ImageFont.truetype(f"assets/fonts/Courier.ttf", size=36)
-        font_small = ImageFont.truetype(f"assets/fonts/Courier.ttf", size=24)
+        font_large = ImageFont.truetype("assets/fonts/Courier.ttf", size=36)
+        font_small = ImageFont.truetype("assets/fonts/Courier.ttf", size=24)
         
         # Split the text
         parts = text.split("\n")
