@@ -27,16 +27,17 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Constants
+###
+### Constants
+###
+
 VERY_DARK_COLORS = [
     "black", "darkblue", "darkmagenta", "darkslategrey",
     "indigo", "midnightblue", "navy", "purple",
 ]
 
-# Add this constant for the cache file path
 CACHE_FILE_PATH = "word_cache.json"
 
-# Add this constant near the top of the file, with other constants
 COMMON_WORDS_TO_EXCLUDE = {
     'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
     'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
@@ -47,20 +48,29 @@ COMMON_WORDS_TO_EXCLUDE = {
     'people', 'into', 'year', 'your', 'good', 'some', 'could', 'these', 'give', 'day', 'most', 'us'
 }
 
-# Add this constant near the top of the file, with other constants
 DICTIONARY = enchant.Dict("en_US")
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger('dejavu_bot')
-
-# Add these constants
 LEADERBOARD_FILE = "leaderboard.json"
 STREAK_BONUS = 1  # Points awarded for maintaining a streak
 
 MERCY_USER_ID = int(os.environ.get("MERCY_USER_ID", 0))
 
 MAX_RETRIES = 3
+
+MESSAGE_BLACKLIST = [
+    r'https?://\S+|www\.\S+',  # URL pattern
+    r'\blol\b',                # "lol" (case-insensitive)
+    r'\blmao\b',               # "lmao" (case-insensitive)
+    r'\brofl\b',               # "rofl" (case-insensitive)
+    r'\bwtf\b',                # "wtf" (case-insensitive)
+    r'\bkek\b',                # "kek" (case-insensitive)
+    r'\b(ha){2,}\b'            # Two or more "ha"s as a standalone word
+]
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('dejavu_bot')
+
 
 class DejavuBot(discord.Client):
     def __init__(self):
@@ -248,7 +258,7 @@ async def process_dejavu_command(inter: discord.Interaction, format: Literal["te
     
             message_found = False
             async for rand_message in channel.history(limit=5, around=rand_datetime):
-                if rand_message.content:
+                if rand_message.content and not is_blacklisted(rand_message.content):
                     logger.debug(f"Random message found: {rand_message.content[:20]}...")  # Log first 20 chars
                     await create_and_send_response(rand_message, channel, format, background)
                     message_found = True
@@ -269,6 +279,14 @@ async def process_dejavu_command(inter: discord.Interaction, format: Literal["te
         await inter.followup.send("An error occurred while processing the command. Please try again later.")
 
     logger.debug("Dejavu command processing completed")
+
+def is_blacklisted(message_content):
+    # Check if the string is explicitly blacklisted
+    for pattern in MESSAGE_BLACKLIST:
+        if re.search(pattern, message_content, re.IGNORECASE):
+            return True
+
+    return False
 
 def get_rand_datetime(start: datetime, end: datetime) -> datetime:
     """Return a random datetime between two datetime objects."""
