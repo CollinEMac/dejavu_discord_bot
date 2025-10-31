@@ -1,10 +1,12 @@
 import discord
+from discord.ui import View, Button
 from io import BytesIO
 import logging
 from random import choice
 import re
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
+from datetime import datetime, timezone
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -44,8 +46,9 @@ MESSAGE_BLACKLIST = [
     r'\b(ha){2,}\b'            # Two or more "ha"s as a standalone word
 ]
 
-async def create_and_send_image(text: str, channel: discord.TextChannel, background: str):
-    """Create and send an image with the message text overlaid on the selected background."""
+async def create_and_send_image(text: str, channel: discord.TextChannel, background: str, bot_instance=None):
+    """Create and send an image with the message text overlaid on the selected background.
+    Returns the sent message."""
     logger.debug(f"Creating image with text: {text[:20]}..., background: {background}")
     
     RANDOM = 'random'
@@ -139,10 +142,23 @@ async def create_and_send_image(text: str, channel: discord.TextChannel, backgro
         buffer.seek(0)
         
         file = discord.File(buffer, filename=f"dejavu_message_{background}.png")
-        await channel.send(file=file)
+        
+        # Create view with pin button if bot_instance is provided
+        view = None
+        if bot_instance:
+            # We'll create the view after sending the message so we have the message ID
+            sent_message = await channel.send(file=file)
+            view = PinButtonView(bot_instance, sent_message.id, text, background)
+            # Edit the message to add the view
+            await sent_message.edit(view=view)
+            return sent_message
+        else:
+            sent_message = await channel.send(file=file)
+            return sent_message
     except Exception as e:
         logger.error(f"Error creating image: {str(e)}")
-        await channel.send("An error occurred while creating the image.")
+        error_message = await channel.send("An error occurred while creating the image.")
+        return error_message
 
 
 def is_blacklisted(message_content):
@@ -152,5 +168,78 @@ def is_blacklisted(message_content):
             return True
 
     return False
+
+
+class PinButtonView(View):
+    """View containing a pin button for bot-generated images."""
+    
+    def __init__(self, bot_instance, message_id: int, original_text: str, background: str):
+        super().__init__(timeout=None)  # Persistent view
+        self.bot = bot_instance
+        self.message_id = message_id
+        self.original_text = original_text
+        self.background = background
+        
+    @discord.ui.button(label="Pin to Hall of Fame", emoji="📌", style=discord.ButtonStyle.primary)
+    async def pin_button(self, interaction: discord.Interaction, button: Button):
+        """Handle pin button click."""
+        try:
+            # Get the message
+            message = interaction.message
+            
+            # Check if already pinned
+            message_id_str = str(message.id)
+            if message_id_str in self.bot.hall_of_fame:
+                await interaction.response.send_message("This image is already pinned!", ephemeral=True)
+                return
+            
+            # Get image URL from attachment
+            image_url = None
+            if message.attachments:
+                image_url = message.attachments[0].url
+            
+            # Extract metadata from original_text
+            parts = self.original_text.split("\n")
+            author_name = parts[0].replace(" said:", "")
+            original_message_text = parts[1] if len(parts) > 1 else ""
+            timestamp_str = parts[2] if len(parts) > 2 else ""
+            
+            # Store in Hall of Fame
+            pin_entry = {
+                "message_id": message.id,
+                "channel_id": message.channel.id,
+                "guild_id": message.guild.id if message.guild else None,
+                "image_urls": [image_url] if image_url else [],
+                "original_message_text": original_message_text[:1000],  # Truncate if needed
+                "author_name": author_name,
+                "timestamp": timestamp_str,
+                "background_used": self.background,
+                "pinned_by": interaction.user.name,
+                "pinned_at": datetime.now(timezone.utc).isoformat(),
+                "pin_type": "bot_image"
+            }
+            
+            self.bot.hall_of_fame[message_id_str] = pin_entry
+            self.bot.save_hall_of_fame()
+            
+            # Add 📌 reaction to message for consistency
+            try:
+                await message.add_reaction("📌")
+            except Exception as e:
+                logger.warning(f"Could not add 📌 reaction: {e}")
+            
+            # React with ✅ checkmark
+            try:
+                await message.add_reaction("✅")
+            except Exception as e:
+                logger.warning(f"Could not add ✅ reaction: {e}")
+            
+            # Disable the button
+            button.disabled = True
+            await interaction.response.edit_message(view=self)
+            
+        except Exception as e:
+            logger.error(f"Error pinning image: {str(e)}")
+            await interaction.response.send_message("An error occurred while pinning the image.", ephemeral=True)
 
 

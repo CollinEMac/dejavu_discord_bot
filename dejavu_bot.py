@@ -17,7 +17,9 @@ import logging
 import json
 import enchant
 import asyncio
-
+from io import BytesIO
+import aiohttp
+from discord.ui import View, Button
 
 from dotenv import load_dotenv
 
@@ -50,6 +52,7 @@ COMMON_WORDS_TO_EXCLUDE = {
 DICTIONARY = enchant.Dict("en_US")
 
 LEADERBOARD_FILE = "leaderboard.json"
+HALL_OF_FAME_FILE = "hall_of_fame.json"
 STREAK_BONUS = 1  # Points awarded for maintaining a streak
 
 MERCY_USER_ID = int(os.environ.get("MERCY_USER_ID", 0))
@@ -91,6 +94,7 @@ class DejavuBot(discord.Client):
         }
         self.word_cache = self.load_word_cache()
         self.leaderboard = self.load_leaderboard()
+        self.hall_of_fame = self.load_hall_of_fame()
 
     def load_word_cache(self):
         logger.debug("Loading word cache from file")
@@ -136,6 +140,22 @@ class DejavuBot(discord.Client):
             self.leaderboard[player]["total"] += score
             self.leaderboard[player][game_type] += score
         self.save_leaderboard()
+
+    def load_hall_of_fame(self):
+        logger.debug("Loading Hall of Fame from file")
+        if os.path.exists(HALL_OF_FAME_FILE):
+            try:
+                with open(HALL_OF_FAME_FILE, 'r') as f:
+                    return json.load(f)
+            except json.JSONDecodeError:
+                logger.error("Error decoding Hall of Fame JSON, starting fresh")
+                return {}
+        return {}
+
+    def save_hall_of_fame(self):
+        logger.debug("Saving Hall of Fame to file")
+        with open(HALL_OF_FAME_FILE, 'w') as f:
+            json.dump(self.hall_of_fame, f)
 
     async def setup_hook(self):
         logger.debug("Setting up command tree")
@@ -274,7 +294,7 @@ async def create_and_send_response(rand_message: discord.Message, channel: disco
             await channel.send(text)
         elif choice == "image":
             logger.debug("Creating and sending image response")
-            await create_and_send_image(text, channel, background)
+            await create_and_send_image(text, channel, background, bot)
         else:
             logger.warning(f"Invalid choice: {choice}")
             await channel.send("Invalid Command.")
@@ -540,6 +560,229 @@ async def show_leaderboard(inter: discord.Interaction):
     
     await inter.followup.send(embed=embed)
 
+
+class HallOfFameView(View):
+    """View for Hall of Fame pagination and sharing."""
+    
+    def __init__(self, bot_instance, entries: list, page: int = 0, per_page: int = 10):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.bot = bot_instance
+        self.entries = entries
+        self.page = page
+        self.per_page = per_page
+        self.total_pages = (len(entries) + per_page - 1) // per_page if entries else 1
+        
+    def get_page_entries(self):
+        """Get entries for current page."""
+        start = self.page * self.per_page
+        end = start + self.per_page
+        return self.entries[start:end]
+    
+    def create_embed(self):
+        """Create embed for current page."""
+        page_entries = self.get_page_entries()
+        
+        if not page_entries:
+            embed = Embed(
+                title="Hall of Fame",
+                description="No pinned items yet.",
+                color=discord.Color.gold()
+            )
+            return embed
+        
+        embed = Embed(
+            title="Hall of Fame",
+            description=f"Page {self.page + 1}/{self.total_pages} ({len(self.entries)} total)",
+            color=discord.Color.gold()
+        )
+        
+        for i, entry in enumerate(page_entries, start=self.page * self.per_page + 1):
+            # Truncate message preview
+            message_preview = entry.get("original_message_text", "")[:500]
+            if len(entry.get("original_message_text", "")) > 500:
+                message_preview += "..."
+            
+            # Build field value
+            value_parts = []
+            if message_preview:
+                value_parts.append(f"**Message:** {message_preview}")
+            
+            if entry.get("background_used"):
+                value_parts.append(f"**Background:** {entry['background_used']}")
+            
+            if entry.get("image_urls"):
+                image_count = len(entry["image_urls"])
+                value_parts.append(f"**Images:** {image_count} image(s)")
+                # Add first image URL
+                if entry["image_urls"][0]:
+                    value_parts.append(f"**Image:** {entry['image_urls'][0]}")
+            
+            value_parts.append(f"**Timestamp:** {entry.get('timestamp', 'Unknown')}")
+            value_parts.append(f"**Pinned by:** {entry.get('pinned_by', 'Unknown')}")
+            
+            # Create jump link
+            try:
+                message_id = entry.get("message_id")
+                channel_id = entry.get("channel_id")
+                guild_id = entry.get("guild_id")
+                if message_id and channel_id:
+                    jump_url = f"https://discord.com/channels/{guild_id or '@me'}/{channel_id}/{message_id}"
+                    value_parts.append(f"[Jump to message]({jump_url})")
+            except Exception:
+                pass
+            
+            field_name = f"{i}. {entry.get('author_name', 'Unknown')}"
+            field_value = "\n".join(value_parts)
+            
+            embed.add_field(
+                name=field_name,
+                value=field_value[:1024],  # Discord embed field limit
+                inline=False
+            )
+        
+        return embed
+    
+    @discord.ui.button(label="Previous", emoji="◀️", style=discord.ButtonStyle.secondary, disabled=True)
+    async def prev_button(self, interaction: discord.Interaction, button: Button):
+        if self.page > 0:
+            self.page -= 1
+            self.prev_button.disabled = self.page == 0
+            self.next_button.disabled = self.page >= self.total_pages - 1
+            await interaction.response.edit_message(embed=self.create_embed(), view=self)
+    
+    @discord.ui.button(label="Next", emoji="▶️", style=discord.ButtonStyle.secondary)
+    async def next_button(self, interaction: discord.Interaction, button: Button):
+        if self.page < self.total_pages - 1:
+            self.page += 1
+            self.prev_button.disabled = self.page == 0
+            self.next_button.disabled = self.page >= self.total_pages - 1
+            await interaction.response.edit_message(embed=self.create_embed(), view=self)
+    
+    @discord.ui.button(label="Share", emoji="📤", style=discord.ButtonStyle.primary, row=1)
+    async def share_button(self, interaction: discord.Interaction, button: Button):
+        """Share selected entry to current channel."""
+        # For now, share first entry on page. Could be enhanced with select menu
+        page_entries = self.get_page_entries()
+        if not page_entries:
+            await interaction.response.send_message("No entries to share.", ephemeral=True)
+            return
+        
+        # Defer response first
+        await interaction.response.defer(ephemeral=True)
+        
+        # Share first entry
+        entry = page_entries[0]
+        await self.share_entry(entry, interaction.channel, interaction)
+    
+    async def share_entry(self, entry: dict, channel: discord.TextChannel, interaction: discord.Interaction):
+        """Share a Hall of Fame entry to a channel."""
+        try:
+            # Try to fetch original message
+            message_id = entry.get("message_id")
+            channel_id = entry.get("channel_id")
+            
+            original_message = None
+            if message_id and channel_id:
+                try:
+                    target_channel = bot.get_channel(channel_id)
+                    if target_channel:
+                        original_message = await target_channel.fetch_message(message_id)
+                except Exception:
+                    pass
+            
+            if original_message:
+                # Repost original message content and attachments
+                if original_message.attachments:
+                    files = []
+                    async with aiohttp.ClientSession() as session:
+                        for attachment in original_message.attachments:
+                            async with session.get(attachment.url) as resp:
+                                if resp.status == 200:
+                                    data = await resp.read()
+                                    files.append(discord.File(BytesIO(data), filename=attachment.filename))
+                    
+                    if original_message.content:
+                        await channel.send(content=original_message.content, files=files)
+                    else:
+                        await channel.send(files=files)
+                else:
+                    if original_message.content:
+                        await channel.send(original_message.content)
+                
+                await interaction.followup.send("Shared to channel!", ephemeral=True)
+            else:
+                # Fallback: repost stored data
+                content = entry.get("original_message_text", "")
+                if entry.get("image_urls"):
+                    # Try to download and repost images
+                    async with aiohttp.ClientSession() as session:
+                        files = []
+                        for img_url in entry["image_urls"][:10]:  # Limit to 10 images
+                            try:
+                                async with session.get(img_url) as resp:
+                                    if resp.status == 200:
+                                        data = await resp.read()
+                                        files.append(discord.File(BytesIO(data), filename="image.png"))
+                            except Exception:
+                                pass
+                        
+                        if content:
+                            await channel.send(content=content, files=files if files else None)
+                        elif files:
+                            await channel.send(files=files)
+                        else:
+                            await channel.send("Could not retrieve original content.")
+                    
+                    await interaction.followup.send("Shared to channel!", ephemeral=True)
+                else:
+                    if content:
+                        await channel.send(content)
+                        await interaction.followup.send("Shared to channel!", ephemeral=True)
+                    else:
+                        await interaction.followup.send("Could not retrieve original content.", ephemeral=True)
+                        
+        except Exception as e:
+            logger.error(f"Error sharing entry: {str(e)}")
+            try:
+                await interaction.followup.send("An error occurred while sharing.", ephemeral=True)
+            except:
+                pass
+
+
+@dejavu.command(name="halloffame", description="Browse the Hall of Fame")
+async def hall_of_fame(inter: discord.Interaction):
+    """Handle the /dejavu halloffame command."""
+    await inter.response.defer()
+    
+    # Get all entries, sorted by pinned_at (newest first)
+    entries = list(bot.hall_of_fame.values())
+    entries.sort(key=lambda x: x.get("pinned_at", ""), reverse=True)
+    
+    if not entries:
+        embed = Embed(
+            title="Hall of Fame",
+            description="No pinned items yet.",
+            color=discord.Color.gold()
+        )
+        await inter.followup.send(embed=embed)
+        return
+    
+    # Create view with pagination
+    view = HallOfFameView(bot, entries, page=0, per_page=10)
+    embed = view.create_embed()
+    
+    # Disable prev button on first page
+    view.prev_button.disabled = True
+    view.next_button.disabled = len(entries) <= 10
+    
+    await inter.followup.send(embed=embed, view=view)
+
+# Add alias command
+@dejavu.command(name="hof", description="Browse the Hall of Fame (alias)")
+async def hall_of_fame_alias(inter: discord.Interaction):
+    """Handle the /dejavu hof command (alias for halloffame)."""
+    await hall_of_fame(inter)
+
 @bot.event
 async def on_message(message: discord.Message):
     """Handle messages for the 'Who said' and 'Word Yapper' games."""
@@ -547,6 +790,111 @@ async def on_message(message: discord.Message):
         return
 
     logger.debug(f"Processing mention: {message.content[:20]}...")  # Log first 20 chars of message
+
+@bot.event
+async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
+    """Handle pin reactions (📌) to pin messages to Hall of Fame."""
+    # Skip if bot's own reaction
+    if user.bot:
+        return
+    
+    # Only handle 📌 reactions
+    if str(reaction.emoji) != "📌":
+        return
+    
+    try:
+        message = reaction.message
+        message_id_str = str(message.id)
+        
+        # Check if already pinned
+        if message_id_str in bot.hall_of_fame:
+            return
+        
+        # Extract message metadata
+        image_urls = []
+        if message.attachments:
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith('image/'):
+                    image_urls.append(attachment.url)
+        
+        # Truncate message content if too long
+        message_content = message.content[:1000] if message.content else ""
+        
+        # Store in Hall of Fame
+        pin_entry = {
+            "message_id": message.id,
+            "channel_id": message.channel.id,
+            "guild_id": message.guild.id if message.guild else None,
+            "image_urls": image_urls,
+            "original_message_text": message_content,
+            "author_name": message.author.name,
+            "timestamp": message.created_at.strftime('%Y-%m-%d %I:%M %p'),
+            "background_used": None,  # Not a bot image
+            "pinned_by": user.name,
+            "pinned_at": datetime.now(timezone.utc).isoformat(),
+            "pin_type": "message"
+        }
+        
+        bot.hall_of_fame[message_id_str] = pin_entry
+        bot.save_hall_of_fame()
+        
+        # React with ✅ checkmark
+        try:
+            await message.add_reaction("✅")
+        except Exception as e:
+            logger.warning(f"Could not add ✅ reaction: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error handling pin reaction: {str(e)}")
+
+@bot.event
+async def on_reaction_remove(reaction: discord.Reaction, user: discord.User):
+    """Handle removal of pin reactions (📌) to unpin messages from Hall of Fame."""
+    # Skip if bot's own reaction removal
+    if user.bot:
+        return
+    
+    # Only handle 📌 reactions
+    if str(reaction.emoji) != "📌":
+        return
+    
+    try:
+        message = reaction.message
+        message_id_str = str(message.id)
+        
+        # Check if message is pinned
+        if message_id_str not in bot.hall_of_fame:
+            return
+        
+        # Check if there are any other 📌 reactions (don't unpin if others still have it)
+        # Get fresh reaction data
+        try:
+            message = await message.channel.fetch_message(message.id)
+            pin_reactions = [r for r in message.reactions if str(r.emoji) == "📌"]
+            if pin_reactions:
+                # Check if any non-bot users still have the reaction
+                pin_reaction = pin_reactions[0]
+                users_with_pin = [u async for u in pin_reaction.users() if not u.bot]
+                if users_with_pin:
+                    # Other users still have it pinned, don't unpin
+                    return
+        except Exception as e:
+            logger.warning(f"Could not fetch message for reaction check: {e}")
+        
+        # Remove from Hall of Fame
+        del bot.hall_of_fame[message_id_str]
+        bot.save_hall_of_fame()
+        
+        # Remove ✅ checkmark if present
+        try:
+            checkmark_reactions = [r for r in message.reactions if str(r.emoji) == "✅"]
+            if checkmark_reactions:
+                await message.remove_reaction("✅", bot.user)
+        except Exception as e:
+            logger.warning(f"Could not remove ✅ reaction: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error handling unpin reaction: {str(e)}")
 
 @bot.event
 async def on_ready():
