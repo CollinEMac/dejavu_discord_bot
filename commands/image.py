@@ -198,11 +198,10 @@ class PinButtonView(View):
             if message.attachments:
                 image_url = message.attachments[0].url
             
-            # Extract metadata from original_text
-            parts = self.original_text.split("\n")
-            author_name = parts[0].replace(" said:", "")
-            original_message_text = parts[1] if len(parts) > 1 else ""
-            timestamp_str = parts[2] if len(parts) > 2 else ""
+            # Use structured metadata instead of parsing original_text
+            author_name = self.author_name
+            original_message_text = self.original_message_text
+            timestamp_str = self.timestamp_str
             
             # Store in Hall of Fame
             pin_entry = {
