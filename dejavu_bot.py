@@ -687,8 +687,9 @@ class HallOfFameView(View):
                     target_channel = self.bot.get_channel(channel_id)
                     if target_channel:
                         original_message = await target_channel.fetch_message(message_id)
-                except Exception:
-                    pass
+                except Exception as fetch_exc:
+                    # It's possible the message was deleted or is inaccessible; log and continue with fallback.
+                    logging.warning(f"Failed to fetch original message {message_id} from channel {channel_id}: {fetch_exc}")
             
             if original_message:
                 # Repost original message content and attachments
