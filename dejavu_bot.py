@@ -727,7 +727,7 @@ class HallOfFameView(View):
                                 pass
                         
                         if content:
-                            await channel.send(content=content, files=files if files else None)
+                            await channel.send(content=content, files=files)
                         elif files:
                             await channel.send(files=files)
                         else:
