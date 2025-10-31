@@ -724,8 +724,8 @@ class HallOfFameView(View):
                                     if resp.status == 200:
                                         data = await resp.read()
                                         files.append(discord.File(BytesIO(data), filename=f"image_{i}.png"))
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logger.warning(f"Failed to download image from {img_url}: {e}")
                         
                         if content:
                             await channel.send(content=content, files=files)
