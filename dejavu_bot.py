@@ -745,7 +745,7 @@ class HallOfFameView(View):
             logger.error(f"Error sharing entry: {str(e)}")
             try:
                 await interaction.followup.send("An error occurred while sharing.", ephemeral=True)
-            except:
+            except Exception:
                 pass
 
 
