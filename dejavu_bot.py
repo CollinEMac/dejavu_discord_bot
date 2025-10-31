@@ -629,7 +629,7 @@ class HallOfFameView(View):
                     jump_url = f"https://discord.com/channels/{guild_id or '@me'}/{channel_id}/{message_id}"
                     value_parts.append(f"[Jump to message]({jump_url})")
             except Exception:
-                pass
+                logging.exception("Failed to create jump link for Hall of Fame entry.")
             
             field_name = f"{i}. {entry.get('author_name', 'Unknown')}"
             field_value = "\n".join(value_parts)
