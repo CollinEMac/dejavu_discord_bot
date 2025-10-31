@@ -684,7 +684,7 @@ class HallOfFameView(View):
             original_message = None
             if message_id and channel_id:
                 try:
-                    target_channel = bot.get_channel(channel_id)
+                    target_channel = self.bot.get_channel(channel_id)
                     if target_channel:
                         original_message = await target_channel.fetch_message(message_id)
                 except Exception:
