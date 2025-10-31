@@ -717,12 +717,12 @@ class HallOfFameView(View):
                     # Try to download and repost images
                     async with aiohttp.ClientSession() as session:
                         files = []
-                        for img_url in entry["image_urls"][:10]:  # Limit to 10 images
+                        for i, img_url in enumerate(entry["image_urls"][:10]):  # Limit to 10 images
                             try:
                                 async with session.get(img_url) as resp:
                                     if resp.status == 200:
                                         data = await resp.read()
-                                        files.append(discord.File(BytesIO(data), filename="image.png"))
+                                        files.append(discord.File(BytesIO(data), filename=f"image_{i}.png"))
                             except Exception:
                                 pass
                         
