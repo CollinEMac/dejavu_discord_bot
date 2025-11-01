@@ -52,7 +52,7 @@ COMMON_WORDS_TO_EXCLUDE = {
 DICTIONARY = enchant.Dict("en_US")
 
 LEADERBOARD_FILE = "leaderboard.json"
-HALL_OF_FAME_FILE = "hall_of_fame.json"
+HALL_OF_FAME_FILE = "/data/hall_of_fame.json"
 STREAK_BONUS = 1  # Points awarded for maintaining a streak
 
 MERCY_USER_ID = int(os.environ.get("MERCY_USER_ID", 0))
