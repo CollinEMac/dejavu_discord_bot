@@ -180,6 +180,20 @@ class PinButtonView(View):
         self.original_text = original_text
         self.background = background
         
+        # Parse original_text to extract components
+        parts = original_text.split("\n")
+        if len(parts) >= 3:
+            # Format: "author said: \nmessage\nat timestamp"
+            author_line = parts[0]  # "author said: "
+            self.author_name = author_line.replace(" said:", "").strip()
+            self.original_message_text = parts[1].strip()
+            self.timestamp_str = parts[2].replace("at ", "").strip()
+        else:
+            # Fallback if format is unexpected
+            self.author_name = "Unknown"
+            self.original_message_text = original_text
+            self.timestamp_str = "Unknown"
+        
     @discord.ui.button(label="Pin to Hall of Fame", emoji="📌", style=discord.ButtonStyle.primary)
     async def pin_button(self, interaction: discord.Interaction, button: Button):
         """Handle pin button click."""
