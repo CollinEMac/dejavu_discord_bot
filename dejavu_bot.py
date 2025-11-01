@@ -782,7 +782,7 @@ async def hall_of_fame(inter: discord.Interaction):
 @dejavu.command(name="hof", description="Browse the Hall of Fame (alias)")
 async def hall_of_fame_alias(inter: discord.Interaction):
     """Handle the /dejavu hof command (alias for halloffame)."""
-    await hall_of_fame(inter)
+    await hall_of_fame.callback(inter)
 
 @bot.event
 async def on_message(message: discord.Message):
