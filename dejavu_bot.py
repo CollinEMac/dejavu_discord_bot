@@ -674,6 +674,55 @@ class HallOfFameView(View):
         entry = page_entries[0]
         await self.share_entry(entry, interaction.channel, interaction)
     
+    @discord.ui.button(label="Unpin", emoji="🗑️", style=discord.ButtonStyle.danger, row=1)
+    async def unpin_button(self, interaction: discord.Interaction, button: Button):
+        """Unpin the first entry on current page."""
+        page_entries = self.get_page_entries()
+        if not page_entries:
+            await interaction.response.send_message("No entries to unpin.", ephemeral=True)
+            return
+        
+        # Get first entry on page
+        entry = page_entries[0]
+        message_id_str = str(entry.get("message_id"))
+        
+        # Remove from hall of fame
+        if message_id_str in self.bot.hall_of_fame:
+            del self.bot.hall_of_fame[message_id_str]
+            self.bot.save_hall_of_fame()
+            
+            # Try to remove bot reactions from original message
+            try:
+                channel_id = entry.get("channel_id")
+                message_id = entry.get("message_id")
+                if channel_id and message_id:
+                    target_channel = self.bot.get_channel(channel_id)
+                    if target_channel:
+                        original_message = await target_channel.fetch_message(message_id)
+                        # Remove bot's reactions
+                        await original_message.remove_reaction("📌", self.bot.user)
+                        await original_message.remove_reaction("✅", self.bot.user)
+            except Exception as e:
+                logger.warning(f"Could not remove reactions from original message: {e}")
+            
+            # Update entries list and recalculate pages
+            self.entries = [e for e in self.entries if str(e.get("message_id")) != message_id_str]
+            self.total_pages = (len(self.entries) + self.per_page - 1) // self.per_page if self.entries else 1
+            
+            # Adjust current page if necessary
+            if self.page >= self.total_pages:
+                self.page = max(0, self.total_pages - 1)
+            
+            # Update button states
+            self.prev_button.disabled = self.page == 0
+            self.next_button.disabled = self.page >= self.total_pages - 1 or len(self.entries) <= self.per_page
+            
+            # Update the view
+            embed = self.create_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+        else:
+            await interaction.response.send_message("Entry not found in hall of fame.", ephemeral=True)
+    
     async def share_entry(self, entry: dict, channel: discord.TextChannel, interaction: discord.Interaction):
         """Share a Hall of Fame entry to a channel."""
         try:
