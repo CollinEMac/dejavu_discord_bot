@@ -819,7 +819,8 @@ class HallOfFameView(View):
 
 
 @dejavu.command(name="halloffame", description="Browse the Hall of Fame")
-async def hall_of_fame(inter: discord.Interaction):
+@app_commands.describe(random="Show a random entry instead of starting from the first")
+async def hall_of_fame(inter: discord.Interaction, random: bool = False):
     """Handle the /dejavu halloffame command."""
     await inter.response.defer()
     
@@ -836,21 +837,29 @@ async def hall_of_fame(inter: discord.Interaction):
         await inter.followup.send(embed=embed)
         return
     
+    # Determine starting page
+    if random:
+        from random import randint
+        start_page = randint(0, len(entries) - 1)
+    else:
+        start_page = 0
+    
     # Create view with single-entry pagination
-    view = HallOfFameView(bot, entries, page=0, per_page=1)
+    view = HallOfFameView(bot, entries, page=start_page, per_page=1)
     embed = view.create_embed()
     
-    # Disable prev button on first page
-    view.prev_button.disabled = True
-    view.next_button.disabled = len(entries) <= 1
+    # Update button states based on starting page
+    view.prev_button.disabled = start_page == 0
+    view.next_button.disabled = start_page >= len(entries) - 1 or len(entries) <= 1
     
     await inter.followup.send(embed=embed, view=view)
 
 # Add alias command
 @dejavu.command(name="hof", description="Browse the Hall of Fame (alias)")
-async def hall_of_fame_alias(inter: discord.Interaction):
+@app_commands.describe(random="Show a random entry instead of starting from the first")
+async def hall_of_fame_alias(inter: discord.Interaction, random: bool = False):
     """Handle the /dejavu hof command (alias for halloffame)."""
-    await hall_of_fame.callback(inter)
+    await hall_of_fame.callback(inter, random)
 
 @bot.event
 async def on_message(message: discord.Message):
