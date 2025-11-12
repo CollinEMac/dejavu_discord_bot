@@ -6,7 +6,7 @@ Arguments: text, image, whosaid
 
 import os
 from datetime import datetime, timedelta, timezone
-from random import choice, randrange
+from random import choice, randrange, randint
 from typing import Literal
 import re
 from collections import defaultdict
@@ -599,7 +599,7 @@ class HallOfFameView(View):
             color=discord.Color.gold()
         )
         
-        # Add author name as the title field
+        # Add author name field
         embed.add_field(
             name="Author",
             value=entry.get('author_name', 'Unknown'),
@@ -618,7 +618,7 @@ class HallOfFameView(View):
                 inline=False
             )
         
-        # Add background if it's a bot image
+        # Add background if available
         if entry.get("background_used"):
             embed.add_field(
                 name="Background",
@@ -839,7 +839,6 @@ async def hall_of_fame(inter: discord.Interaction, random: bool = False):
     
     # Determine starting page
     if random:
-        from random import randint
         start_page = randint(0, len(entries) - 1)
     else:
         start_page = 0
