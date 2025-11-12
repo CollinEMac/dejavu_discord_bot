@@ -564,22 +564,22 @@ async def show_leaderboard(inter: discord.Interaction):
 class HallOfFameView(View):
     """View for Hall of Fame pagination and sharing."""
     
-    def __init__(self, bot_instance, entries: list, page: int = 0, per_page: int = 10):
+    def __init__(self, bot_instance, entries: list, page: int = 0, per_page: int = 1):
         super().__init__(timeout=300)  # 5 minute timeout
         self.bot = bot_instance
         self.entries = entries
         self.page = page
         self.per_page = per_page
-        self.total_pages = (len(entries) + per_page - 1) // per_page if entries else 1
+        self.total_pages = len(entries) if entries else 1
         
     def get_page_entries(self):
-        """Get entries for current page."""
-        start = self.page * self.per_page
-        end = start + self.per_page
-        return self.entries[start:end]
+        """Get entry for current page (single entry)."""
+        if 0 <= self.page < len(self.entries):
+            return [self.entries[self.page]]
+        return []
     
     def create_embed(self):
-        """Create embed for current page."""
+        """Create embed for current page (single entry)."""
         page_entries = self.get_page_entries()
         
         if not page_entries:
@@ -590,55 +590,75 @@ class HallOfFameView(View):
             )
             return embed
         
+        entry = page_entries[0]
+        
+        # Create embed with entry details
         embed = Embed(
             title="Hall of Fame",
-            description=f"Page {self.page + 1}/{self.total_pages} ({len(self.entries)} total)",
+            description=f"Entry {self.page + 1} of {len(self.entries)}",
             color=discord.Color.gold()
         )
         
-        for i, entry in enumerate(page_entries, start=self.page * self.per_page + 1):
-            # Truncate message preview
-            message_preview = entry.get("original_message_text", "")[:500]
-            if len(entry.get("original_message_text", "")) > 500:
-                message_preview += "..."
-            
-            # Build field value
-            value_parts = []
-            if message_preview:
-                value_parts.append(f"**Message:** {message_preview}")
-            
-            if entry.get("background_used"):
-                value_parts.append(f"**Background:** {entry['background_used']}")
-            
-            if entry.get("image_urls"):
-                image_count = len(entry["image_urls"])
-                value_parts.append(f"**Images:** {image_count} image(s)")
-                # Add first image URL
-                if entry["image_urls"][0]:
-                    value_parts.append(f"**Image:** {entry['image_urls'][0]}")
-            
-            value_parts.append(f"**Timestamp:** {entry.get('timestamp', 'Unknown')}")
-            value_parts.append(f"**Pinned by:** {entry.get('pinned_by', 'Unknown')}")
-            
-            # Create jump link
-            try:
-                message_id = entry.get("message_id")
-                channel_id = entry.get("channel_id")
-                guild_id = entry.get("guild_id")
-                if message_id and channel_id:
-                    jump_url = f"https://discord.com/channels/{guild_id or '@me'}/{channel_id}/{message_id}"
-                    value_parts.append(f"[Jump to message]({jump_url})")
-            except Exception:
-                logging.exception("Failed to create jump link for Hall of Fame entry.")
-            
-            field_name = f"{i}. {entry.get('author_name', 'Unknown')}"
-            field_value = "\n".join(value_parts)
-            
+        # Add author name as the title field
+        embed.add_field(
+            name="Author",
+            value=entry.get('author_name', 'Unknown'),
+            inline=False
+        )
+        
+        # Add message content if available
+        message_preview = entry.get("original_message_text", "")
+        if message_preview:
+            # Truncate if too long
+            if len(message_preview) > 1024:
+                message_preview = message_preview[:1021] + "..."
             embed.add_field(
-                name=field_name,
-                value=field_value[:1024],  # Discord embed field limit
+                name="Message",
+                value=message_preview,
                 inline=False
             )
+        
+        # Add background if it's a bot image
+        if entry.get("background_used"):
+            embed.add_field(
+                name="Background",
+                value=entry['background_used'],
+                inline=True
+            )
+        
+        # Add timestamp
+        embed.add_field(
+            name="Original Timestamp",
+            value=entry.get('timestamp', 'Unknown'),
+            inline=True
+        )
+        
+        # Add pinned by info
+        embed.add_field(
+            name="Pinned By",
+            value=entry.get('pinned_by', 'Unknown'),
+            inline=True
+        )
+        
+        # Add jump link
+        try:
+            message_id = entry.get("message_id")
+            channel_id = entry.get("channel_id")
+            guild_id = entry.get("guild_id")
+            if message_id and channel_id:
+                jump_url = f"https://discord.com/channels/{guild_id or '@me'}/{channel_id}/{message_id}"
+                embed.add_field(
+                    name="Jump to Original",
+                    value=f"[Click here]({jump_url})",
+                    inline=False
+                )
+        except Exception:
+            logging.exception("Failed to create jump link for Hall of Fame entry.")
+        
+        # Add image to embed if available
+        if entry.get("image_urls") and entry["image_urls"]:
+            # Use the first image URL
+            embed.set_image(url=entry["image_urls"][0])
         
         return embed
     
@@ -660,8 +680,7 @@ class HallOfFameView(View):
     
     @discord.ui.button(label="Share", emoji="📤", style=discord.ButtonStyle.primary, row=1)
     async def share_button(self, interaction: discord.Interaction, button: Button):
-        """Share selected entry to current channel."""
-        # For now, share first entry on page. Could be enhanced with select menu
+        """Share current entry to current channel."""
         page_entries = self.get_page_entries()
         if not page_entries:
             await interaction.response.send_message("No entries to share.", ephemeral=True)
@@ -670,19 +689,19 @@ class HallOfFameView(View):
         # Defer response first
         await interaction.response.defer(ephemeral=True)
         
-        # Share first entry
+        # Share the single entry
         entry = page_entries[0]
         await self.share_entry(entry, interaction.channel, interaction)
     
     @discord.ui.button(label="Unpin", emoji="🗑️", style=discord.ButtonStyle.danger, row=1)
     async def unpin_button(self, interaction: discord.Interaction, button: Button):
-        """Unpin the first entry on current page."""
+        """Unpin the current entry."""
         page_entries = self.get_page_entries()
         if not page_entries:
             await interaction.response.send_message("No entries to unpin.", ephemeral=True)
             return
         
-        # Get first entry on page
+        # Get the single entry displayed
         entry = page_entries[0]
         message_id_str = str(entry.get("message_id"))
         
@@ -705,9 +724,9 @@ class HallOfFameView(View):
             except Exception as e:
                 logger.warning(f"Could not remove reactions from original message: {e}")
             
-            # Update entries list and recalculate pages
+            # Update entries list
             self.entries = [e for e in self.entries if str(e.get("message_id")) != message_id_str]
-            self.total_pages = (len(self.entries) + self.per_page - 1) // self.per_page if self.entries else 1
+            self.total_pages = len(self.entries) if self.entries else 1
             
             # Adjust current page if necessary
             if self.page >= self.total_pages:
@@ -715,7 +734,7 @@ class HallOfFameView(View):
             
             # Update button states
             self.prev_button.disabled = self.page == 0
-            self.next_button.disabled = self.page >= self.total_pages - 1 or len(self.entries) <= self.per_page
+            self.next_button.disabled = self.page >= self.total_pages - 1 or len(self.entries) == 0
             
             # Update the view
             embed = self.create_embed()
@@ -817,13 +836,13 @@ async def hall_of_fame(inter: discord.Interaction):
         await inter.followup.send(embed=embed)
         return
     
-    # Create view with pagination
-    view = HallOfFameView(bot, entries, page=0, per_page=10)
+    # Create view with single-entry pagination
+    view = HallOfFameView(bot, entries, page=0, per_page=1)
     embed = view.create_embed()
     
     # Disable prev button on first page
     view.prev_button.disabled = True
-    view.next_button.disabled = len(entries) <= 10
+    view.next_button.disabled = len(entries) <= 1
     
     await inter.followup.send(embed=embed, view=view)
 
