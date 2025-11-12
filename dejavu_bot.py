@@ -408,13 +408,20 @@ async def wait_for_correct_answer(channel: discord.TextChannel):
     while True:
         try:
             message = await bot.wait_for('message', check=lambda m: m.channel == channel and not m.author.bot and m.mentions, timeout=60.0)
-            if message.mentions[0].name == bot.whosaid["author"]:
+            if message.mentions and message.mentions[0].name == bot.whosaid["author"]:
                 await process_whosaid_guess(message)
                 break
             else:
                 await message.reply("Wrong! Try again.")
         except asyncio.TimeoutError:
             await channel.send("No one answered in time. Game aborted.")
+            await end_whosaid_game(channel)
+            break
+        except IndexError:
+            await message.reply("Please mention a user.")
+        except Exception as e:
+            logger.error(f"Error in wait_for_correct_answer: {e}")
+            await channel.send("An error occurred. Game aborted.")
             await end_whosaid_game(channel)
             break
 
@@ -483,10 +490,12 @@ async def start_word_yapper(channel: discord.TextChannel, rounds: int, mercy_mod
 
                 word_counts = defaultdict(lambda: defaultdict(int))
                 message_count = 0
-                async for message in channel.history(limit=10000):  # Adjust limit as needed
+                # Limit to 10000 messages to prevent memory issues
+                async for message in channel.history(limit=10000):
                     if message.author.bot or (mercy_mode and message.author.id == MERCY_USER_ID):
                         continue
-                    words = re.findall(r'\w+', message.content.lower())
+                    # Limit word processing to prevent DoS
+                    words = re.findall(r'\w+', message.content.lower())[:100]  # Limit to 100 words per message
                     for word in words:
                         word_counts[word][message.author.name] += 1
                     message_count += 1
@@ -572,13 +581,20 @@ async def wait_for_correct_word_yapper_answer(channel: discord.TextChannel):
     while True:
         try:
             message = await bot.wait_for('message', check=lambda m: m.channel == channel and not m.author.bot and m.mentions, timeout=60.0)
-            if message.mentions[0].name == bot.word_yapper["top_user"]:
+            if message.mentions and message.mentions[0].name == bot.word_yapper["top_user"]:
                 await process_word_yapper_guess(message)
                 break
             else:
                 await message.reply("Wrong! Try again.")
         except asyncio.TimeoutError:
             await channel.send("No one answered in time. Game aborted.")
+            await end_word_yapper_game(channel)
+            break
+        except IndexError:
+            await message.reply("Please mention a user.")
+        except Exception as e:
+            logger.error(f"Error in wait_for_correct_word_yapper_answer: {e}")
+            await channel.send("An error occurred. Game aborted.")
             await end_word_yapper_game(channel)
             break
 
@@ -1064,4 +1080,11 @@ async def on_ready():
     logger.info(f"Logged in as {bot.user.name}")
 
 logger.info("Starting DejavuBot")
-bot.run(os.environ.get("DISCORD_TOKEN"))
+
+# Validate DISCORD_TOKEN before running
+discord_token = os.environ.get("DISCORD_TOKEN")
+if not discord_token:
+    logger.error("DISCORD_TOKEN environment variable is not set. Cannot start bot.")
+    raise ValueError("DISCORD_TOKEN environment variable is required")
+
+bot.run(discord_token)
