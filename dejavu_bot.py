@@ -20,6 +20,7 @@ import asyncio
 from io import BytesIO
 import aiohttp
 from discord.ui import View, Button
+import threading
 
 from dotenv import load_dotenv
 
@@ -38,6 +39,7 @@ VERY_DARK_COLORS = [
 ]
 
 CACHE_FILE_PATH = "word_cache.json"
+FILE_LOCK = threading.Lock()  # Lock for file I/O operations
 
 COMMON_WORDS_TO_EXCLUDE = {
     'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
@@ -55,7 +57,15 @@ LEADERBOARD_FILE = "leaderboard.json"
 HALL_OF_FAME_FILE = "/data/hall_of_fame.json"
 STREAK_BONUS = 1  # Points awarded for maintaining a streak
 
-MERCY_USER_ID = int(os.environ.get("MERCY_USER_ID", 0))
+# Validate and sanitize MERCY_USER_ID
+try:
+    MERCY_USER_ID = int(os.environ.get("MERCY_USER_ID", 0))
+    if MERCY_USER_ID < 0:
+        logger.warning("MERCY_USER_ID is negative, setting to 0")
+        MERCY_USER_ID = 0
+except ValueError:
+    logger.error("MERCY_USER_ID environment variable is not a valid integer, defaulting to 0")
+    MERCY_USER_ID = 0
 
 MAX_RETRIES = 3
 
@@ -95,43 +105,66 @@ class DejavuBot(discord.Client):
         self.word_cache = self.load_word_cache()
         self.leaderboard = self.load_leaderboard()
         self.hall_of_fame = self.load_hall_of_fame()
+        self.word_cache_updating = False  # Flag to prevent concurrent cache updates
 
     def load_word_cache(self):
         logger.debug("Loading word cache from file")
-        if os.path.exists(CACHE_FILE_PATH):
-            with open(CACHE_FILE_PATH, 'r') as f:
-                cache = json.load(f)
-            # Convert defaultdict(int) back from JSON
-            cache['data'] = defaultdict(lambda: defaultdict(int), {k: defaultdict(int, v) for k, v in cache['data'].items()})
-            return cache
-        else:
-            return {
-                "data": defaultdict(lambda: defaultdict(int)),
-                "last_update": 0,
-                "cache_duration": 3600
-            }
+        with FILE_LOCK:
+            if os.path.exists(CACHE_FILE_PATH):
+                try:
+                    with open(CACHE_FILE_PATH, 'r') as f:
+                        cache = json.load(f)
+                    # Convert defaultdict(int) back from JSON
+                    cache['data'] = defaultdict(lambda: defaultdict(int), {k: defaultdict(int, v) for k, v in cache['data'].items()})
+                    return cache
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.error(f"Error loading word cache: {e}, starting fresh")
+                    return {
+                        "data": defaultdict(lambda: defaultdict(int)),
+                        "last_update": 0,
+                        "cache_duration": 3600
+                    }
+            else:
+                return {
+                    "data": defaultdict(lambda: defaultdict(int)),
+                    "last_update": 0,
+                    "cache_duration": 3600
+                }
 
     def save_word_cache(self):
         logger.debug("Saving word cache to file")
-        cache_to_save = {
-            "data": {k: dict(v) for k, v in self.word_cache['data'].items()},
-            "last_update": self.word_cache['last_update'],
-            "cache_duration": self.word_cache['cache_duration']
-        }
-        with open(CACHE_FILE_PATH, 'w') as f:
-            json.dump(cache_to_save, f)
+        with FILE_LOCK:
+            try:
+                cache_to_save = {
+                    "data": {k: dict(v) for k, v in self.word_cache['data'].items()},
+                    "last_update": self.word_cache['last_update'],
+                    "cache_duration": self.word_cache['cache_duration']
+                }
+                with open(CACHE_FILE_PATH, 'w') as f:
+                    json.dump(cache_to_save, f)
+            except Exception as e:
+                logger.error(f"Error saving word cache: {e}")
 
     def load_leaderboard(self):
         logger.debug("Loading leaderboard from file")
-        if os.path.exists(LEADERBOARD_FILE):
-            with open(LEADERBOARD_FILE, 'r') as f:
-                return json.load(f)
-        return {}
+        with FILE_LOCK:
+            if os.path.exists(LEADERBOARD_FILE):
+                try:
+                    with open(LEADERBOARD_FILE, 'r') as f:
+                        return json.load(f)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error loading leaderboard: {e}, starting fresh")
+                    return {}
+            return {}
 
     def save_leaderboard(self):
         logger.debug("Saving leaderboard to file")
-        with open(LEADERBOARD_FILE, 'w') as f:
-            json.dump(self.leaderboard, f)
+        with FILE_LOCK:
+            try:
+                with open(LEADERBOARD_FILE, 'w') as f:
+                    json.dump(self.leaderboard, f)
+            except Exception as e:
+                logger.error(f"Error saving leaderboard: {e}")
 
     def update_leaderboard(self, game_type, scores):
         for player, score in scores.items():
@@ -143,19 +176,30 @@ class DejavuBot(discord.Client):
 
     def load_hall_of_fame(self):
         logger.debug("Loading Hall of Fame from file")
-        if os.path.exists(HALL_OF_FAME_FILE):
-            try:
-                with open(HALL_OF_FAME_FILE, 'r') as f:
-                    return json.load(f)
-            except json.JSONDecodeError:
-                logger.error("Error decoding Hall of Fame JSON, starting fresh")
-                return {}
-        return {}
+        # Ensure /data directory exists
+        os.makedirs(os.path.dirname(HALL_OF_FAME_FILE), exist_ok=True)
+        
+        with FILE_LOCK:
+            if os.path.exists(HALL_OF_FAME_FILE):
+                try:
+                    with open(HALL_OF_FAME_FILE, 'r') as f:
+                        return json.load(f)
+                except json.JSONDecodeError:
+                    logger.error("Error decoding Hall of Fame JSON, starting fresh")
+                    return {}
+            return {}
 
     def save_hall_of_fame(self):
         logger.debug("Saving Hall of Fame to file")
-        with open(HALL_OF_FAME_FILE, 'w') as f:
-            json.dump(self.hall_of_fame, f)
+        # Ensure /data directory exists
+        os.makedirs(os.path.dirname(HALL_OF_FAME_FILE), exist_ok=True)
+        
+        with FILE_LOCK:
+            try:
+                with open(HALL_OF_FAME_FILE, 'w') as f:
+                    json.dump(self.hall_of_fame, f)
+            except Exception as e:
+                logger.error(f"Error saving Hall of Fame: {e}")
 
     async def setup_hook(self):
         logger.debug("Setting up command tree")
@@ -241,6 +285,16 @@ bot.tree.add_command(dejavu)
 async def process_dejavu_command(inter: discord.Interaction, format: Literal["text", "image"], background: str = "japmic"):
     """Process the dejavu command for text and image formats."""
     logger.debug(f"Processing dejavu command. Format: {format}, Background: {background}")
+    
+    # Validate background parameter to prevent path traversal
+    if format == "image":
+        # Remove 'random' from validation as it's handled specially
+        valid_backgrounds = BACKGROUNDS + ['random']
+        if background not in valid_backgrounds:
+            logger.warning(f"Invalid background requested: {background}")
+            await inter.followup.send("Invalid background selection.")
+            return
+    
     channel = inter.channel
     created_at = channel.created_at
     end = datetime.now(timezone.utc)
@@ -322,7 +376,11 @@ async def play_whosaid_round(channel: discord.TextChannel):
     created_at = channel.created_at
     end = datetime.now(timezone.utc)
     
-    while True:
+    max_attempts = 10  # Limit attempts to prevent infinite loop
+    attempts = 0
+    
+    while attempts < max_attempts:
+        attempts += 1
         rand_datetime = get_rand_datetime(created_at, end)
         async for rand_message in channel.history(limit=1, around=rand_datetime):
             if rand_message.content and (not bot.whosaid["mercy_mode"] or rand_message.author.id != MERCY_USER_ID):
@@ -341,18 +399,29 @@ async def play_whosaid_round(channel: discord.TextChannel):
                     await end_whosaid_game(channel)
                 return
         # If we didn't find a suitable message, we'll try again with a new random datetime
+    
+    # If we couldn't find a message after max_attempts, abort the game
+    await channel.send("Could not find a suitable message. Game aborted.")
+    await end_whosaid_game(channel)
 
 async def wait_for_correct_answer(channel: discord.TextChannel):
     while True:
         try:
             message = await bot.wait_for('message', check=lambda m: m.channel == channel and not m.author.bot and m.mentions, timeout=60.0)
-            if message.mentions[0].name == bot.whosaid["author"]:
+            if message.mentions and message.mentions[0].name == bot.whosaid["author"]:
                 await process_whosaid_guess(message)
                 break
             else:
                 await message.reply("Wrong! Try again.")
         except asyncio.TimeoutError:
             await channel.send("No one answered in time. Game aborted.")
+            await end_whosaid_game(channel)
+            break
+        except IndexError:
+            await message.reply("Please mention a user.")
+        except Exception as e:
+            logger.error(f"Error in wait_for_correct_answer: {e}")
+            await channel.send("An error occurred. Game aborted.")
             await end_whosaid_game(channel)
             break
 
@@ -393,30 +462,51 @@ async def start_word_yapper(channel: discord.TextChannel, rounds: int, mercy_mod
     
     # Check if cache is valid
     if current_time - bot.word_cache["last_update"] > bot.word_cache["cache_duration"]:
-        logger.debug("Cache invalid, updating word cache")
-        loading_embed = Embed(
-            title="Word Yapper",
-            description="Updating word cache... This may take a moment.",
-            color=discord.Color.blue()
-        )
-        loading_embed.set_footer(text="Please wait while I analyze the channel history.")
-        loading_message = await channel.send(embed=loading_embed)
+        # Check if another update is already in progress
+        if bot.word_cache_updating:
+            logger.debug("Cache update already in progress, waiting...")
+            # Wait for the update to complete
+            max_wait = 60  # Maximum wait time in seconds
+            wait_interval = 1
+            waited = 0
+            while bot.word_cache_updating and waited < max_wait:
+                await asyncio.sleep(wait_interval)
+                waited += wait_interval
+            
+            if bot.word_cache_updating:
+                await channel.send("Cache update is taking too long. Please try again later.")
+                return
+        else:
+            bot.word_cache_updating = True
+            try:
+                logger.debug("Cache invalid, updating word cache")
+                loading_embed = Embed(
+                    title="Word Yapper",
+                    description="Updating word cache... This may take a moment.",
+                    color=discord.Color.blue()
+                )
+                loading_embed.set_footer(text="Please wait while I analyze the channel history.")
+                loading_message = await channel.send(embed=loading_embed)
 
-        word_counts = defaultdict(lambda: defaultdict(int))
-        message_count = 0
-        async for message in channel.history(limit=10000):  # Adjust limit as needed
-            if message.author.bot or (mercy_mode and message.author.id == MERCY_USER_ID):
-                continue
-            words = re.findall(r'\w+', message.content.lower())
-            for word in words:
-                word_counts[word][message.author.name] += 1
-            message_count += 1
-        
-        bot.word_cache["data"] = word_counts
-        bot.word_cache["last_update"] = current_time
-        bot.save_word_cache()  # Save cache after updating
+                word_counts = defaultdict(lambda: defaultdict(int))
+                message_count = 0
+                # Limit to 10000 messages to prevent memory issues
+                async for message in channel.history(limit=10000):
+                    if message.author.bot or (mercy_mode and message.author.id == MERCY_USER_ID):
+                        continue
+                    # Limit word processing to prevent DoS
+                    words = re.findall(r'\w+', message.content.lower())[:100]  # Limit to 100 words per message
+                    for word in words:
+                        word_counts[word][message.author.name] += 1
+                    message_count += 1
+                
+                bot.word_cache["data"] = word_counts
+                bot.word_cache["last_update"] = current_time
+                bot.save_word_cache()  # Save cache after updating
 
-        await loading_message.delete()
+                await loading_message.delete()
+            finally:
+                bot.word_cache_updating = False
     else:
         logger.debug("Using existing word cache")
         word_counts = bot.word_cache["data"]
@@ -491,13 +581,20 @@ async def wait_for_correct_word_yapper_answer(channel: discord.TextChannel):
     while True:
         try:
             message = await bot.wait_for('message', check=lambda m: m.channel == channel and not m.author.bot and m.mentions, timeout=60.0)
-            if message.mentions[0].name == bot.word_yapper["top_user"]:
+            if message.mentions and message.mentions[0].name == bot.word_yapper["top_user"]:
                 await process_word_yapper_guess(message)
                 break
             else:
                 await message.reply("Wrong! Try again.")
         except asyncio.TimeoutError:
             await channel.send("No one answered in time. Game aborted.")
+            await end_word_yapper_game(channel)
+            break
+        except IndexError:
+            await message.reply("Please mention a user.")
+        except Exception as e:
+            logger.error(f"Error in wait_for_correct_word_yapper_answer: {e}")
+            await channel.send("An error occurred. Game aborted.")
             await end_word_yapper_game(channel)
             break
 
@@ -764,16 +861,25 @@ class HallOfFameView(View):
                 if original_message.attachments:
                     files = []
                     async with aiohttp.ClientSession() as session:
-                        for attachment in original_message.attachments:
-                            async with session.get(attachment.url) as resp:
-                                if resp.status == 200:
-                                    data = await resp.read()
-                                    files.append(discord.File(BytesIO(data), filename=attachment.filename))
+                        try:
+                            for attachment in original_message.attachments:
+                                try:
+                                    async with session.get(attachment.url) as resp:
+                                        if resp.status == 200:
+                                            data = await resp.read()
+                                            files.append(discord.File(BytesIO(data), filename=attachment.filename))
+                                except Exception as e:
+                                    logger.warning(f"Failed to download attachment {attachment.url}: {e}")
+                        except Exception as e:
+                            logger.error(f"Error processing attachments: {e}")
                     
-                    if original_message.content:
-                        await channel.send(content=original_message.content, files=files)
-                    else:
-                        await channel.send(files=files)
+                    if files:
+                        if original_message.content:
+                            await channel.send(content=original_message.content, files=files)
+                        else:
+                            await channel.send(files=files)
+                    elif original_message.content:
+                        await channel.send(original_message.content)
                 else:
                     if original_message.content:
                         await channel.send(original_message.content)
@@ -796,7 +902,7 @@ class HallOfFameView(View):
                                 logger.warning(f"Failed to download image from {img_url}: {e}")
                         
                         if content:
-                            await channel.send(content=content, files=files)
+                            await channel.send(content=content, files=files if files else None)
                         elif files:
                             await channel.send(files=files)
                         else:
@@ -885,6 +991,7 @@ async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
         
         # Check if already pinned
         if message_id_str in bot.hall_of_fame:
+            logger.debug(f"Message {message_id_str} is already pinned")
             return
         
         # Extract message metadata
@@ -918,11 +1025,19 @@ async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
         # React with ✅ checkmark
         try:
             await message.add_reaction("✅")
+        except discord.errors.Forbidden:
+            logger.warning("Bot does not have permission to add reactions")
+        except discord.errors.NotFound:
+            logger.warning("Message not found when trying to add reaction")
         except Exception as e:
             logger.warning(f"Could not add ✅ reaction: {e}")
             
+    except discord.errors.Forbidden as e:
+        logger.error(f"Permission error handling pin reaction: {e}")
+    except discord.errors.NotFound as e:
+        logger.error(f"Message not found when handling pin reaction: {e}")
     except Exception as e:
-        logger.error(f"Error handling pin reaction: {str(e)}")
+        logger.error(f"Unexpected error handling pin reaction: {e}", exc_info=True)
 
 @bot.event
 async def on_reaction_remove(reaction: discord.Reaction, user: discord.User):
@@ -941,6 +1056,7 @@ async def on_reaction_remove(reaction: discord.Reaction, user: discord.User):
         
         # Check if message is pinned
         if message_id_str not in bot.hall_of_fame:
+            logger.debug(f"Message {message_id_str} is not in Hall of Fame")
             return
         
         # Check if there are any other 📌 reactions (don't unpin if others still have it)
@@ -954,7 +1070,12 @@ async def on_reaction_remove(reaction: discord.Reaction, user: discord.User):
                 users_with_pin = [u async for u in pin_reaction.users() if not u.bot]
                 if users_with_pin:
                     # Other users still have it pinned, don't unpin
+                    logger.debug(f"Other users still have message {message_id_str} pinned")
                     return
+        except discord.errors.NotFound:
+            logger.warning(f"Message {message.id} not found when checking reactions")
+        except discord.errors.Forbidden:
+            logger.warning(f"No permission to fetch message {message.id}")
         except Exception as e:
             logger.warning(f"Could not fetch message for reaction check: {e}")
         
@@ -967,15 +1088,30 @@ async def on_reaction_remove(reaction: discord.Reaction, user: discord.User):
             checkmark_reactions = [r for r in message.reactions if str(r.emoji) == "✅"]
             if checkmark_reactions:
                 await message.remove_reaction("✅", bot.user)
+        except discord.errors.Forbidden:
+            logger.warning("Bot does not have permission to remove reactions")
+        except discord.errors.NotFound:
+            logger.warning("Message or reaction not found when trying to remove checkmark")
         except Exception as e:
             logger.warning(f"Could not remove ✅ reaction: {e}")
             
+    except discord.errors.Forbidden as e:
+        logger.error(f"Permission error handling unpin reaction: {e}")
+    except discord.errors.NotFound as e:
+        logger.error(f"Message not found when handling unpin reaction: {e}")
     except Exception as e:
-        logger.error(f"Error handling unpin reaction: {str(e)}")
+        logger.error(f"Unexpected error handling unpin reaction: {e}", exc_info=True)
 
 @bot.event
 async def on_ready():
     logger.info(f"Logged in as {bot.user.name}")
 
 logger.info("Starting DejavuBot")
-bot.run(os.environ.get("DISCORD_TOKEN"))
+
+# Validate DISCORD_TOKEN before running
+discord_token = os.environ.get("DISCORD_TOKEN")
+if not discord_token:
+    logger.error("DISCORD_TOKEN environment variable is not set. Cannot start bot.")
+    raise ValueError("DISCORD_TOKEN environment variable is required")
+
+bot.run(discord_token)
