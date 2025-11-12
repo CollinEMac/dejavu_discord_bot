@@ -7,6 +7,7 @@ import re
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
 from datetime import datetime, timezone
+import os
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -56,10 +57,23 @@ async def create_and_send_image(text: str, channel: discord.TextChannel, backgro
     try:
         if background == RANDOM:
             background = choice([bg for bg in BACKGROUNDS if bg != RANDOM])
+        
+        # Validate background to prevent path traversal
+        if background not in BACKGROUNDS:
+            logger.error(f"Invalid background: {background}")
+            error_message = await channel.send("Invalid background selection.")
+            return error_message
 
         # Load the background image
         background_path = f"assets/images/{background}.jpg"
         logger.debug(f"Loading background image from: {background_path}")
+        
+        # Verify the file exists
+        if not os.path.exists(background_path):
+            logger.error(f"Background image not found: {background_path}")
+            error_message = await channel.send("Background image not found.")
+            return error_message
+            
         background_img = Image.open(background_path)
         width, height = background_img.size
         
