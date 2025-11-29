@@ -24,7 +24,7 @@ import threading
 
 from dotenv import load_dotenv
 
-from commands.image import BACKGROUNDS, create_and_send_image, is_blacklisted
+from commands.image import BACKGROUNDS, create_and_send_image, is_blacklisted, JumpLinkView
 
 # Load environment variables
 load_dotenv()
@@ -341,14 +341,19 @@ async def create_and_send_response(rand_message: discord.Message, channel: disco
     """Create and send the appropriate response based on the user's choice."""
     logger.debug(f"Creating response for choice: {choice}, background: {background}")
     text = f"{rand_message.author.name} said: \n{rand_message.content}\nat {rand_message.created_at.strftime('%Y-%m-%d %I:%M %p')}"
+    
+    # Build jump URL to original message
+    guild_id = rand_message.guild.id if rand_message.guild else "@me"
+    jump_url = f"https://discord.com/channels/{guild_id}/{rand_message.channel.id}/{rand_message.id}"
 
     try:
         if choice == "text":
             logger.debug("Sending text response")
-            await channel.send(text)
+            view = JumpLinkView(jump_url)
+            await channel.send(text, view=view)
         elif choice == "image":
             logger.debug("Creating and sending image response")
-            await create_and_send_image(text, channel, background, bot)
+            await create_and_send_image(text, channel, background, bot, jump_url)
         else:
             logger.warning(f"Invalid choice: {choice}")
             await channel.send("Invalid Command.")

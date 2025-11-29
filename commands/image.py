@@ -47,7 +47,7 @@ MESSAGE_BLACKLIST = [
     r'\b(ha){2,}\b'            # Two or more "ha"s as a standalone word
 ]
 
-async def create_and_send_image(text: str, channel: discord.TextChannel, background: str, bot_instance=None):
+async def create_and_send_image(text: str, channel: discord.TextChannel, background: str, bot_instance=None, jump_url: str = None):
     """Create and send an image with the message text overlaid on the selected background.
     Returns the sent message."""
     logger.debug(f"Creating image with text: {text[:20]}..., background: {background}")
@@ -162,7 +162,7 @@ async def create_and_send_image(text: str, channel: discord.TextChannel, backgro
         if bot_instance:
             # We'll create the view after sending the message so we have the message ID
             sent_message = await channel.send(file=file)
-            view = PinButtonView(bot_instance, sent_message.id, text, background)
+            view = PinButtonView(bot_instance, sent_message.id, text, background, jump_url)
             # Edit the message to add the view
             await sent_message.edit(view=view)
             return sent_message
@@ -184,10 +184,26 @@ def is_blacklisted(message_content):
     return False
 
 
+class JumpLinkView(View):
+    """View containing a jump-to-original button for text responses."""
+    
+    def __init__(self, jump_url: str):
+        super().__init__(timeout=None)  # Persistent view
+        
+        # Add jump to original button
+        jump_button = Button(
+            label="Jump to Original",
+            emoji="🔗",
+            style=discord.ButtonStyle.link,
+            url=jump_url
+        )
+        self.add_item(jump_button)
+
+
 class PinButtonView(View):
     """View containing a pin button for bot-generated images."""
     
-    def __init__(self, bot_instance, message_id: int, original_text: str, background: str):
+    def __init__(self, bot_instance, message_id: int, original_text: str, background: str, jump_url: str = None):
         super().__init__(timeout=None)  # Persistent view
         self.bot = bot_instance
         self.message_id = message_id
@@ -207,6 +223,16 @@ class PinButtonView(View):
             self.author_name = "Unknown"
             self.original_message_text = original_text
             self.timestamp_str = "Unknown"
+        
+        # Add jump to original button if URL provided
+        if jump_url:
+            jump_button = Button(
+                label="Jump to Original",
+                emoji="🔗",
+                style=discord.ButtonStyle.link,
+                url=jump_url
+            )
+            self.add_item(jump_button)
         
     @discord.ui.button(label="Pin to Hall of Fame", emoji="📌", style=discord.ButtonStyle.primary)
     async def pin_button(self, interaction: discord.Interaction, button: Button):
