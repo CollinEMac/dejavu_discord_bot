@@ -216,14 +216,22 @@ async def dejavu_text(inter: discord.Interaction):
     await inter.response.defer()
     await process_dejavu_command(inter, "text")
 
+async def background_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    return [
+        app_commands.Choice(name=c, value=c)
+        for c in BACKGROUNDS
+        if current.lower() in c.lower()
+    ]
+
 @dejavu.command(name="image", description="Get a random message as an image")
-@app_commands.describe(background="Choose the background image (default: iphone)")
-@app_commands.choices(background=[
-    app_commands.Choice(name=choice, value=choice) for choice in BACKGROUNDS
-])
+@app_commands.describe(background="Choose the background image (default: random)")
+@app_commands.autocomplete(background=background_autocomplete)
 async def dejavu_image(
     inter: discord.Interaction,
-    background: str
+    background: str = "random"
 ):
     """Handle the /dejavu image command."""
     logger.debug(f"Dejavu image command invoked with background: {background}")
