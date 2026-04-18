@@ -319,7 +319,7 @@ async def process_dejavu_command(inter: discord.Interaction, format: Literal["te
             logger.warning("No suitable message found in channel history")
             await inter.followup.send("No suitable message found. Please try again.")
         else:
-            await inter.followup.send("Command processed successfully.")
+            logger.info("Command processed successfully.")
     except discord.errors.Forbidden:
         logger.error("Bot doesn't have permission to read message history")
         await inter.followup.send("I don't have permission to read message history in this channel.")
