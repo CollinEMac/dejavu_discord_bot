@@ -219,7 +219,7 @@ dejavu = app_commands.Group(name="dejavu", description="Dejavu commands and game
 async def dejavu_text(inter: discord.Interaction):
     """Handle the /dejavu text command."""
     logger.debug("Dejavu text command invoked")
-    await inter.response.defer()
+    await inter.response.defer(ephemeral=True)
     await process_dejavu_command(inter, "text")
 
 async def background_autocomplete(
@@ -241,7 +241,7 @@ async def dejavu_image(
 ):
     """Handle the /dejavu image command."""
     logger.debug(f"Dejavu image command invoked with background: {background}")
-    await inter.response.defer()
+    await inter.response.defer(ephemeral=True)
     await process_dejavu_command(inter, "image", background)
 
 @dejavu.command(name="whosaid", description="Play 'Who Said' game")
@@ -334,17 +334,29 @@ async def process_dejavu_command(inter: discord.Interaction, format: Literal["te
         
         if not message_found:
             logger.warning("No suitable message found in channel history")
-            await inter.followup.send("No suitable message found. Please try again.")
+            await inter.followup.send(
+                "No suitable message found. Please try again.", ephemeral=True
+            )
         else:
             logger.info("Command processed successfully.")
     except discord.errors.Forbidden:
         logger.error("Bot doesn't have permission to read message history")
-        await inter.followup.send("I don't have permission to read message history in this channel.")
+        await inter.followup.send(
+            "An error occurred while processing the command. Please try again later.",
+            ephemeral=True
+        )
     except Exception as e:
         logger.error(f"Error processing dejavu command: {str(e)}")
-        await inter.followup.send("An error occurred while processing the command. Please try again later.")
-
-    logger.debug("Dejavu command processing completed")
+        await inter.followup.send(
+            "An error occurred while processing the command. Please try again later.",
+            ephemeral=True
+        )
+    finally:
+        try:
+            await inter.delete_original_response()
+        except Exception:
+            pass
+        logger.debug("Dejavu command processing completed")
 
 def get_rand_datetime(start: datetime, end: datetime) -> datetime:
     """Return a random datetime between two datetime objects."""
