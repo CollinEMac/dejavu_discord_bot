@@ -40,11 +40,17 @@ BACKGROUNDS = [
 MESSAGE_BLACKLIST = [
     r'https?://\S+|www\.\S+',  # URL pattern
     r'\blol\b',                # "lol" (case-insensitive)
+    r'\blo+l\b',               # "lool", "loool", etc.
+    r'\b(lol){2,}\b',          # "lollol", "lololol", etc.
     r'\blmao\b',               # "lmao" (case-insensitive)
     r'\brofl\b',               # "rofl" (case-insensitive)
     r'\bwtf\b',                # "wtf" (case-insensitive)
     r'\bkek\b',                # "kek" (case-insensitive)
-    r'\b(ha){2,}\b'            # Two or more "ha"s as a standalone word
+    r'\b(ha){2,}\b',           # Two or more "ha"s as a standalone word
+    r'\bgm kings\b',           # "gm kings" (case-insensitive)
+    r'\byo\b',                 # "yo" (case-insensitive)
+    r'\bok+a*y*\b|\bok\b',     # "ok", "okay", "okk", "okayyy", etc.
+    r'\bk\b',                  # "k" (case-insensitive)
 ]
 
 async def create_and_send_image(text: str, channel: discord.TextChannel, background: str, bot_instance=None, jump_url: str = None):
