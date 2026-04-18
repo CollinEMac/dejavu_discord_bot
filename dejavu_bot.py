@@ -24,7 +24,13 @@ import threading
 
 from dotenv import load_dotenv
 
-from commands.image import BACKGROUNDS, create_and_send_image, is_blacklisted, JumpLinkView
+from commands.image import (
+    BACKGROUNDS,
+    BOT_USER_IDS,
+    create_and_send_image,
+    is_blacklisted,
+    JumpLinkView
+)
 
 # Load environment variables
 load_dotenv()
@@ -315,7 +321,10 @@ async def process_dejavu_command(inter: discord.Interaction, format: Literal["te
     
             message_found = False
             async for rand_message in channel.history(limit=5, around=rand_datetime):
-                if rand_message.content and not is_blacklisted(rand_message.content):
+                if (rand_message.content and
+                    not is_blacklisted(rand_message.content) and
+                    rand_message.author.id not in BOT_USER_IDS
+                ):
                     logger.debug(f"Random message found: {rand_message.content[:20]}...")  # Log first 20 chars
                     await create_and_send_response(rand_message, channel, format, background)
                     message_found = True

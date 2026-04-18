@@ -37,6 +37,13 @@ BACKGROUNDS = [
         "yap"
 ]
 
+BOT_USER_IDS = [
+    361033318273384449, # BibleBot
+    1241256728994254938, # dejavu
+    810918366045798451, # Message Scheduler
+    552734173803184128, # Thoth
+]
+
 MESSAGE_BLACKLIST = [
     r'https?://\S+|www\.\S+',  # URL pattern
     r'\blol\b',                # "lol" (case-insensitive)
